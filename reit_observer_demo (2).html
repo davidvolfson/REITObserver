@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>REIT Daily Observer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0e14}</style>
+</head><body><div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+
+// Simulated live data — realistic prices and daily changes as of 3/3/26
+const R=[
+["AvalonBay","AVB",218.45,3.3,0.7,-2.6,-20.5,26.0,24,-22.0,5.9,95.7,1.1,"Multifamily",-0.82],
+["Equity Residential","EQR",68.91,4.1,1.7,2.6,-14.2,24.8,26,-22.6,5.8,96.3,2.8,"Multifamily",0.54],
+["Essex Property","ESS",282.30,3.7,1.3,-2.7,-16.1,17.2,31,-14.7,5.4,96.1,2.4,"Multifamily",-0.31],
+["MAA","MAA",151.22,4.1,-0.6,-1.2,-19.8,16.1,25,-15.6,5.9,95.6,-1.8,"Multifamily",-1.45],
+["UDR","UDR",41.88,4.1,1.1,3.9,-15.4,13.4,32,-26.0,6.2,96.6,2.3,"Multifamily",0.23],
+["Camden Property","CPT",121.55,3.5,-0.5,2.2,-12.1,11.9,24,-17.2,5.8,95.5,null,"Multifamily",0.68],
+["Independence Realty","IRT",17.82,3.8,-1.5,-3.0,-22.4,4.1,36,-17.9,6.3,95.3,2.7,"Multifamily",-0.45],
+["Veris Residential","VRE",20.15,1.5,26.0,25.2,14.2,1.9,44,-14.5,5.1,94.7,-2.7,"Multifamily",1.92],
+["NexPoint Residential","NXRT",26.44,8.0,-6.8,-11.3,-32.4,0.7,69,-35.3,6.4,94.7,-0.4,"Multifamily",-2.88],
+["Invitation Homes","INVH",29.11,4.1,-1.6,-5.7,-20.9,16.2,33,-39.6,6.1,96.5,1.1,"SFR",0.37],
+["American Homes","AMH",33.50,3.9,-4.8,-6.0,-17.6,12.7,29,-33.3,5.8,95.9,4.6,"SFR",-0.15],
+["Boston Properties","BXP",62.44,4.5,-11.7,-20.8,-17.8,10.2,61,-23.8,7.9,null,2.6,"Office",-3.21],
+["Alexandria RE","ARE",58.20,4.9,-6.5,1.5,-46.1,9.2,59,-37.6,9.1,91.4,-3.1,"Office",1.85],
+["Vornado","VNO",29.33,2.3,-14.1,-25.1,-32.7,6.0,61,-42.6,7.9,87.5,-7.4,"Office",-1.67],
+["SL Green","SLG",38.55,8.1,-17.9,-22.0,-42.9,2.9,77,-35.4,6.6,92.4,-5.5,"Office",2.44],
+["Kilroy Realty","KRC",31.20,6.9,-14.8,-30.8,-16.1,3.6,54,-36.8,9.8,80.9,0.6,"Office",-0.92],
+["Cousins Properties","CUZ",24.10,5.3,-9.4,-10.2,-23.2,4.0,46,-22.6,8.7,89.3,0.3,"Office",-0.41],
+["Douglas Emmett","DEI",10.33,7.4,-6.0,-19.3,-41.3,2.0,68,-34.1,8.4,null,3.5,"Office",-1.55],
+["Highwoods","HIW",23.88,8.4,-14.4,-19.3,-21.9,2.5,58,-30.1,9.6,85.1,-3.6,"Office",-0.75],
+["Corp Office","CDP",33.67,3.8,5.1,4.1,18.3,3.7,40,2.2,7.2,94.3,4.6,"Office",0.89],
+["Hudson Pacific","HPP",6.85,null,-19.4,-47.2,-68.6,0.5,87,-72.2,9.9,null,-10.7,"Office",-4.52],
+["Empire State","ESRT",6.22,2.3,-11.7,-16.0,-35.5,1.6,55,-53.2,10.9,null,-1.5,"Office",-0.64],
+["JBG SMITH","JBGS",14.88,4.7,-9.7,-17.4,-4.0,1.1,66,-45.7,8.5,null,-6.7,"Office",-1.33],
+["Brandywine","BDN",3.44,9.3,11.7,-6.6,-35.1,0.6,83,-59.5,11.7,88.7,2.1,"Office",3.72],
+["Piedmont Office","PDM",8.11,null,-8.8,-13.5,2.3,0.9,70,-28.1,9.4,89.2,2.8,"Office",0.37],
+["Prologis","PLD",132.88,3.2,10.8,11.2,16.1,136.2,22,14.1,4.3,95.2,5.2,"Industrial",1.24],
+["Lineage","LINE",43.22,4.8,11.9,13.1,-32.1,10.5,42,-22.4,8.4,null,null,"Industrial",2.15],
+["Rexford","REXR",39.55,4.4,-4.9,-10.1,-8.1,9.0,26,-18.9,5.9,96.8,5.5,"Industrial",-0.63],
+["EastGroup","EGP",188.90,3.4,9.9,8.4,9.1,10.5,12,10.5,4.5,96.6,6.9,"Industrial",0.48],
+["Americold","COLD",14.22,6.5,5.0,24.4,-41.8,3.9,53,-34.9,9.8,75.5,-2.9,"Industrial",-1.82],
+["STAG","STAG",40.88,3.8,5.6,-0.5,10.0,7.5,29,-1.1,6.1,97.0,3.9,"Industrial",0.34],
+["First Industrial","FR",60.44,3.3,9.9,9.8,10.8,8.6,22,-3.5,5.2,94.6,6.1,"Industrial",0.72],
+["Terreno","TRNO",68.33,3.0,7.4,5.2,-2.7,6.8,13,10.2,4.1,98.6,6.9,"Industrial",0.55],
+["Lexington","LXP",51.22,5.4,0.2,1.9,12.5,2.9,33,-12.3,6.6,96.9,2.0,"Industrial",-0.23],
+["Kimco","KIM",25.88,4.0,12.5,14.2,9.0,16.1,36,-5.2,6.7,null,1.9,"Retail",0.93],
+["Regency Centers","REG",82.44,3.6,10.8,10.9,4.6,14.8,27,6.4,5.6,null,4.8,"Retail",0.67],
+["Brixmor","BRX",32.11,3.9,15.1,16.0,9.8,9.3,36,5.1,6.6,null,4.0,"Retail",1.15],
+["Kite Realty","KRG",27.55,4.2,12.8,12.9,17.6,5.7,35,-7.1,7.0,null,2.1,"Retail",0.51],
+["Phillips Edison","PECO",41.22,3.2,10.9,11.1,8.2,5.4,31,1.0,6.3,null,3.3,"Retail",0.28],
+["Urban Edge","UE",22.44,3.8,10.9,10.5,4.6,2.8,36,2.5,6.8,null,4.7,"Retail",0.82],
+["Federal Realty","FRT",114.55,3.9,7.2,10.3,4.6,9.4,34,1.3,6.0,null,4.4,"Retail",0.45],
+["Acadia","AKR",22.11,3.6,6.6,2.5,-8.5,3.1,32,8.2,5.5,null,8.2,"Retail",-0.36],
+["Simon Property","SPG",215.88,4.0,10.5,9.9,11.6,77.9,30,26.7,5.7,null,5.1,"Retail",0.78],
+["Macerich","MAC",21.88,3.1,15.5,18.7,11.7,5.5,46,19.1,6.8,null,1.7,"Retail",1.42],
+["Tanger","SKT",38.44,3.1,14.1,10.3,5.6,4.4,28,18.5,6.8,null,4.0,"Retail",0.65],
+["Realty Income","O",63.55,5.1,10.0,17.3,18.4,61.6,31,22.1,6.2,null,null,"Net Lease",-0.47],
+["W.P. Carey","WPC",72.11,5.1,7.9,10.8,16.3,16.6,34,41.8,6.1,null,null,"Net Lease",-0.82],
+["NNN REIT","NNN",47.88,5.0,7.5,10.3,7.5,8.6,36,17.8,7.0,null,null,"Net Lease",0.33],
+["Agree Realty","ADC",84.22,3.7,10.8,7.3,9.4,9.2,28,53.0,5.5,null,null,"Net Lease",0.52],
+["Essential Properties","EPRT",35.44,3.5,12.5,7.8,4.4,7.1,26,23.5,5.9,null,null,"Net Lease",0.71],
+["Safehold","SAFE",17.55,4.0,15.7,15.0,-11.6,1.2,81,66.3,4.6,null,null,"Net Lease",-0.57],
+["Broadstone","BNL",20.22,5.7,6.1,10.7,15.6,3.7,42,1.2,7.0,null,null,"Net Lease",0.15],
+["Welltower","WELL",228.33,1.3,12.9,0.4,36.7,144.3,9,160.5,2.7,null,null,"Healthcare",1.88],
+["Ventas","VTR",92.44,2.2,13.4,7.6,25.5,41.5,23,82.9,4.3,null,null,"Healthcare",1.22],
+["Healthpeak","DOC",18.55,6.6,-0.1,-2.9,-12.3,12.6,43,-19.0,7.3,null,null,"Healthcare",-0.54],
+["Omega Healthcare","OHI",50.11,5.4,11.8,5.3,31.0,15.3,22,71.8,6.0,null,null,"Healthcare",0.82],
+["Medical Properties","MPT",5.44,6.7,12.7,-0.2,3.2,3.5,75,40.0,7.4,null,null,"Healthcare",-3.49],
+["Healthcare Realty","HR",19.22,5.0,10.2,0.9,9.8,6.6,41,-11.9,6.6,null,null,"Healthcare",0.42],
+["Sabra","SBRA",21.55,5.6,11.0,6.3,24.9,5.4,30,26.8,6.9,null,null,"Healthcare",0.37],
+["Public Storage","PSA",325.66,3.7,10.6,12.0,0.4,54.1,21,-3.7,5.2,92.2,null,"Storage",0.52],
+["Extra Space","EXR",158.22,4.1,8.0,13.3,-1.6,33.5,29,-0.5,5.3,94.1,-2.5,"Storage",0.34],
+["CubeSmart","CUBE",43.55,4.9,10.1,10.1,-3.3,9.4,27,-12.1,5.6,89.9,-1.5,"Storage",-0.21],
+["National Storage","NSA",36.88,6.2,9.5,18.8,-10.2,4.8,46,-4.0,6.0,85.0,-5.7,"Storage",-0.43],
+["Sun Communities","SUI",141.22,2.9,7.4,6.1,2.4,17.6,17,-2.4,5.8,99.2,5.4,"MH",0.33],
+["Equity LifeStyle","ELS",69.88,3.1,6.8,7.1,-1.7,13.5,20,-9.5,4.8,94.3,5.3,"MH",0.52],
+["Equinix","EQIX",1022.44,2.0,20.3,29.8,7.0,97.8,18,-2.4,5.7,null,null,"Data Ctr",2.33],
+["Digital Realty","DLR",185.55,2.7,8.6,11.5,12.7,62.2,26,10.4,5.4,null,8.0,"Data Ctr",1.67]];
+
+const BRIEFS=[
+{type:"alert",tag:"HPP CONTINUES FREEFALL",text:"Hudson Pacific (HPP) down -4.52% today on tenant downsizing in LA/Bay Area. -69% trailing 12M, NAV disc -72.2%. No dividend. Equity approaching zero on $3.6B EV.",source:"Green Street Advisors",date:"2026-03-03"},
+{type:"alert",tag:"BXP SELLOFF ON DOWNGRADE",text:"Boston Properties (BXP) -3.21% as Barclays downgrades to underweight, cuts PT to $52 from $68. Rising sublease availability in Boston/NYC and 2027 debt maturity wall.",source:"Barclays Research",date:"2026-03-03"},
+{type:"opportunity",tag:"DATA CENTERS LEAD AGAIN",text:"Equinix (EQIX) +2.33%, Digital Realty (DLR) +1.67%. Morgan Stanley raises EQIX PT to $1,100 on AI-driven power density demand. Sector +15.8% trailing month.",source:"Morgan Stanley",date:"2026-03-03"},
+{type:"opportunity",tag:"BDN POPS ON ACTIVIST",text:"Brandywine (BDN) +3.72% after 13D filing — Land & Buildings takes 6.2% stake, pushing for strategic alternatives. Stock still at -59.5% NAV discount.",source:"SEC Filing / Bloomberg",date:"2026-03-03"},
+{type:"watch",tag:"MPT DIVIDEND AT RISK",text:"Medical Properties (MPT) -3.49% after Steward Health Care misses rent payment. 6.7% yield may not be sustainable with 75% debt/EV.",source:"Reuters",date:"2026-03-03"},
+{type:"info",tag:"RETAIL BROAD STRENGTH",text:"Grocery-anchored and mall REITs outperform. Brixmor +1.15%, Macerich +1.42%. Limited supply driving strong re-leasing spreads. Simon at 26.7% NAV premium.",source:"Nareit / Green Street",date:"2026-03-03"},
+{type:"watch",tag:"NXRT YIELD CONCERN",text:"NexPoint (NXRT) -2.88%, -32.4% 1Y. 8.0% yield sustainability in question at 69% debt/EV. Sunbelt multifamily supply wave.",source:"Green Street / SNL",date:"2026-03-03"},
+{type:"info",tag:"WELL NOW LARGEST REIT",text:"Welltower +1.88%, market cap $144B+ — largest REIT. +160.5% NAV premium on senior housing demand. Implied 2.7% cap rate vs 6.3% sector average.",source:"Green Street Advisors",date:"2026-03-03"}];
+
+const DET={summary:{description:"Simon Property Group is the largest U.S. mall REIT, owning premier shopping destinations including premium outlets and mixed-use developments across North America, Europe, and Asia.",headquarters:"Indianapolis, IN",ceo:"David E. Simon",portfolio_size:"195 properties, 241M sq ft",market_focus:"Class-A malls, premium outlets",major_holdings:[{name:"King of Prussia Mall",location:"Philadelphia, PA",type:"Regional Mall",detail:"2.9M sq ft, largest East Coast"},{name:"Woodbury Common",location:"Central Valley, NY",type:"Premium Outlet",detail:"800K sq ft, highest sales PSF"},{name:"Forum Shops at Caesars",location:"Las Vegas, NV",type:"Luxury",detail:"636K sq ft, $1,500+ PSF"},{name:"Sawgrass Mills",location:"Sunrise, FL",type:"Outlet",detail:"2.4M sq ft, largest US outlet"},{name:"Houston Galleria",location:"Houston, TX",type:"Regional Mall",detail:"2.4M sq ft flagship"}]},news:[{headline:"Simon posts strong Q4 with 96.2% occupancy",summary:"FFO $3.69 beat consensus by $0.08. Leasing spreads +3.8% and tenant sales +4.1% YoY. 2026 guidance raised to $13.50-$13.75.",sentiment:"positive",source:"Simon IR / FactSet",date:"2026-02-14"},{headline:"Jefferies upgrades SPG to Buy, PT $235",summary:"Class-A mall fundamentals strongest in a decade with limited new supply. 5.7% implied cap rate offers value vs private market.",sentiment:"positive",source:"Jefferies Research",date:"2026-02-28"},{headline:"Simon announces $2B mixed-use expansion",summary:"Adding residential and office components to 12 properties over 3 years to diversify income streams.",sentiment:"positive",source:"Bloomberg",date:"2026-03-01"},{headline:"February mall traffic slightly soft",summary:"Placer.ai: 2.3% decline vs January nationally, though premium properties outperformed. Weather impact in NE.",sentiment:"neutral",source:"Placer.ai / CNBC",date:"2026-03-02"}]};
+
+// Helpers
+const ST={},SO=[];R.forEach(r=>{const s=r[13];if(!ST[s]){ST[s]=[];SO.push(s);}ST[s].push(r);});
+function secRet(){const o={};SO.forEach(s=>{let tw=0,wr=0;ST[s].forEach(r=>{if(r[14]!=null){tw+=r[7];wr+=r[14]*r[7];}});o[s]=tw>0?Math.round(wr/tw*100)/100:null;});return o;}
+const SR=secRet();
+const cc=v=>v==null?"#5a6878":v>=2?"#34d399":v>0?"#86efac":v<=-2?"#f87171":v<0?"#fca5a5":"#c5cdd8";
+const nc=v=>v==null?"#5a6878":v>=0?"#34d399":"#f87171";
+const fc=v=>v==null?"–":(v>=0?"+":"")+v.toFixed(1)+"%";
+const fd=v=>v==null?"–":(v>=0?"+":"")+v.toFixed(2)+"%";
+const sc=s=>s==="positive"?"#34d399":s==="negative"?"#f87171":"#5a6878";
+const TC={alert:"#f87171",opportunity:"#34d399",watch:"#fbbf24",info:"#60a5fa"};
+const TI={alert:"▲",opportunity:"◆",watch:"◉",info:"●"};
+const S={bg:"#0a0e14",sf:"#111720",sf2:"#161d28",bd:"#1e2836",tx:"#c5cdd8",mu:"#5a6878",br:"#e8edf3",ac:"#818cf8",acD:"#312e81"};
+
+function App(){
+const[pg,sPg]=useState("dashboard"),[ft,sFt]=useState("all"),[sr,sSr]=useState(""),[srt,sSrt]=useState(-1),[sa,sSa]=useState(true),[md,sMd]=useState(null),[cd,sCd]=useState(287),[tk,sTk]=useState(0);
+
+useEffect(()=>{const t=setInterval(()=>{sCd(p=>p>0?p-1:300);sTk(t=>t+1);},1000);return()=>clearInterval(t);},[]);
+useEffect(()=>{if(tk>0&&tk%30===0)R.forEach(r=>{r[2]=Math.round((r[2]+(Math.random()-.5)*.15)*100)/100;});},[tk]);
+
+const mm=Math.floor(cd/60),ss=String(cd%60).padStart(2,"0");
+const tG=R.filter(r=>r[14]>0).sort((a,b)=>b[14]-a[14]).slice(0,5);
+const tL=R.filter(r=>r[14]<0).sort((a,b)=>a[14]-b[14]).slice(0,5);
+const bm=R.filter(r=>Math.abs(r[14]||0)>=2.5).length;
+
+let dd=R.slice();
+if(sr)dd=dd.filter(r=>r[0].toLowerCase().includes(sr.toLowerCase())||r[1].toLowerCase().includes(sr.toLowerCase()));
+if(ft==="dd")dd=dd.filter(r=>r[9]!=null&&r[9]<=-25);
+else if(ft==="mv")dd=dd.filter(r=>Math.abs(r[14]||0)>=1.5);
+else if(ft==="hy")dd=dd.filter(r=>r[3]!=null&&r[3]>=5.5);
+const cm=[0,1,2,14,3,4,5,6,7,8,9,10,11,12];
+if(srt>=0)dd.sort((a,b)=>{const ci=cm[srt];let va=a[ci]??-Infinity,vb=b[ci]??-Infinity;if(typeof va==="string")return sa?va.localeCompare(vb):vb.localeCompare(va);return sa?va-vb:vb-va;});
+const hs=i=>{if(srt===i)sSa(!sa);else{sSrt(i);sSa(i<=1);}};
+let gr=[],ls="";dd.forEach(r=>{if(r[13]!==ls&&!sr&&srt<0){ls=r[13];gr.push({t:"s",n:r[13]});}gr.push({t:"r",d:r});});
+const hd=["Company","Ticker","Price","Day Δ","Yld","1M","3M","1Y","Mkt Cap","D/EV","NAV","Cap Rt","Occ","SS NOI"];
+const now=new Date(),tstr=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}),dstr=now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+
+const MF="'JetBrains Mono',monospace";
+
+return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif",fontSize:13,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+<style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:${S.bg}}::-webkit-scrollbar-thumb{background:${S.bd};border-radius:3px}`}</style>
+
+{/* NAV */}
+<div style={{background:S.sf,borderBottom:`1px solid ${S.bd}`,padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:46,flexShrink:0}}>
+<div style={{display:"flex",alignItems:"center",gap:16}}>
+<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:5,height:20,background:S.ac,borderRadius:2}}/><span style={{fontSize:14,fontWeight:700,color:S.br}}>REIT Observer</span></div>
+{["dashboard","screener"].map(k=><button key={k} onClick={()=>sPg(k)} style={{padding:"12px 16px",fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:pg===k?S.ac:S.mu,background:"none",border:"none",borderBottom:`2px solid ${pg===k?S.ac:"transparent"}`,cursor:"pointer",textTransform:"uppercase",letterSpacing:.5}}>{k.charAt(0).toUpperCase()+k.slice(1)}</button>)}
+</div>
+<div style={{display:"flex",alignItems:"center",gap:12}}>
+<div style={{width:7,height:7,borderRadius:"50%",background:"#34d399",animation:"pulse 2s ease-in-out infinite"}}/>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu}}>Live · {R.length}/{R.length} · Yahoo Finance</span>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,background:S.sf2,padding:"3px 8px",borderRadius:3}}>{mm}:{ss}</span>
+<button style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"5px 12px",borderRadius:4,border:`1px solid ${S.bd}`,background:"transparent",color:S.tx,cursor:"pointer"}}>⟳</button>
+</div></div>
+
+{/* DASHBOARD */}
+{pg==="dashboard"&&<div style={{flex:1,overflow:"auto",padding:"16px 24px"}}>
+<div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto"}}>{SO.map(s=>{const v=SR[s];return<div key={s} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 11px",background:S.sf,border:`1px solid ${S.bd}`,borderRadius:5,whiteSpace:"nowrap"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,textTransform:"uppercase"}}>{s}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,fontWeight:700,color:v!=null?cc(v):S.mu}}>{v!=null?(v>=0?"+":"")+v.toFixed(2)+"%":"–"}</span></div>;})}</div>
+
+<div style={{display:"grid",gridTemplateColumns:"270px 1fr",gap:14,marginBottom:14}}>
+<div style={{display:"flex",flexDirection:"column",gap:12}}>
+{[{l:"▲ Gainers",li:tG,c:"#34d399"},{l:"▼ Losers",li:tL,c:"#f87171"}].map(o=><div key={o.l} style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:o.c,marginBottom:8}}>{o.l}</div>{o.li.map(r=><div key={r[1]} onClick={()=>sMd(r)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${S.bd}`,cursor:"pointer"}}><div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:600,color:S.br,fontSize:12}}>{r[1]}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,marginLeft:6}}>${r[2].toFixed(2)}</span></div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:700,fontSize:12,color:o.c}}>{r[14]>=0?"+":""}{r[14].toFixed(2)}%</span></div>)}</div>)}
+<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}>{[["Live Tickers",R.length+"/"+R.length,"#34d399"],["Big Movers ±2.5%",""+bm,"#fbbf24"],["Brief Stories",""+BRIEFS.length,"#818cf8"],["Last Refresh",tstr,"#34d399"]].map((a,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:i<3?`1px solid ${S.bd}`:"none"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,textTransform:"uppercase"}}>{a[0]}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,fontWeight:600,color:a[2]}}>{a[1]}</span></div>)}</div>
+</div>
+
+<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",display:"flex",flexDirection:"column"}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:S.ac}}>Daily Brief · {tstr} · {BRIEFS.length} stories</span><button style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${S.ac}`,background:S.acD,color:S.ac,cursor:"pointer",textTransform:"uppercase"}}>◆ Generate</button></div>
+<div style={{flex:1,overflow:"auto"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+{BRIEFS.map((b,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${TC[b.type]}`,animation:`fadeIn 0.3s ease ${i*0.05}s both`}}>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,textTransform:"uppercase",letterSpacing:.6,color:TC[b.type],marginBottom:4,display:"flex",justifyContent:"space-between"}}><span>{TI[b.type]} {b.tag}</span><span style={{color:S.mu,fontSize:7,textTransform:"none"}}>{b.source} · {b.date}</span></div>
+<div style={{fontSize:11.5,color:S.tx,lineHeight:1.55}}>{b.text}</div></div>)}
+</div></div></div></div></div>}
+
+{/* SCREENER */}
+{pg==="screener"&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+<div style={{padding:"10px 24px",display:"flex",gap:6,alignItems:"center"}}>{[["all","All"],["dd","Deep Disc"],["mv","Day Movers"],["hy","Hi Yield"]].map(a=><button key={a[0]} onClick={()=>sFt(a[0])} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${ft===a[0]?S.ac:S.bd}`,background:ft===a[0]?S.acD:"transparent",color:ft===a[0]?S.ac:S.mu,cursor:"pointer",textTransform:"uppercase"}}>{a[1]}</button>)}
+<input value={sr} onChange={e=>sSr(e.target.value)} placeholder="Search ticker or name..." style={{marginLeft:"auto",fontFamily:"'JetBrains Mono',monospace",fontSize:10,padding:"5px 12px",borderRadius:4,border:`1px solid ${S.bd}`,background:S.sf,color:S.tx,outline:"none",width:170}}/></div>
+<div style={{flex:1,overflow:"auto",padding:"0 24px"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead><tr>{hd.map((h,i)=><th key={i} onClick={()=>hs(i)} style={{position:"sticky",top:0,background:S.sf,fontFamily:"'JetBrains Mono',monospace",fontSize:8.5,fontWeight:500,textTransform:"uppercase",letterSpacing:.4,color:srt===i?S.ac:i===3?"#fbbf24":S.mu,padding:"8px 6px",textAlign:i<=1?"left":"right",borderBottom:`1px solid ${S.bd}`,whiteSpace:"nowrap",cursor:"pointer",userSelect:"none",zIndex:1}}>{h}{srt===i?(sa?" ↑":" ↓"):""}</th>)}</tr></thead>
+<tbody>{gr.map((item,idx)=>{
+if(item.t==="s")return<tr key={"s"+idx}><td colSpan={14} style={{fontWeight:600,color:S.br,fontSize:9.5,fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:.7,background:S.sf,borderBottom:`2px solid ${S.bd}`,padding:6}}>{item.n}</td></tr>;
+const r=item.d,dp=r[14];
+return<tr key={r[1]} onClick={()=>sMd(r)} style={{borderBottom:`1px solid ${S.bd}`,cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background=S.sf2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+<td style={{padding:6,textAlign:"left",fontFamily:"system-ui",fontWeight:500,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r[0]}</td>
+<td style={{padding:6,textAlign:"left",fontFamily:"'JetBrains Mono',monospace",fontWeight:600,color:S.br}}>{r[1]}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>${r[2].toFixed(2)}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",fontWeight:Math.abs(dp||0)>=2?700:400,color:dp!=null?cc(dp):S.mu,background:dp!=null&&Math.abs(dp)>=3?(dp>0?"rgba(52,211,153,.07)":"rgba(248,113,113,.07)"):"transparent"}}>{fd(dp)}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[3]!=null?r[3].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[4])}}>{fc(r[4])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[5])}}>{fc(r[5])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[6])}}>{fc(r[6])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>${r[7].toFixed(1)}B</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:r[8]>=60?"#f87171":S.tx}}>{r[8]}%</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:nc(r[9]),fontWeight:Math.abs(r[9]||0)>=30?600:400}}>{r[9]!=null?fc(r[9]):"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[10]!=null?r[10].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[11]!=null?r[11].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[12])}}>{fc(r[12])}</td></tr>;})}</tbody></table></div></div>}
+
+{/* MODAL */}
+{md&&<div onClick={e=>{if(e.target===e.currentTarget)sMd(null);}} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.7)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:50}}>
+<div style={{background:S.bg,border:`1px solid ${S.bd}`,borderRadius:10,width:660,maxWidth:"95vw",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.6)"}}>
+<div style={{padding:"14px 18px",borderBottom:`1px solid ${S.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:16,fontWeight:600,color:S.br}}>{md[1]} · {md[0]}</span><button onClick={()=>sMd(null)} style={{background:"none",border:"none",color:S.mu,fontSize:20,cursor:"pointer"}}>×</button></div>
+<div style={{display:"flex",gap:12,padding:"10px 18px",borderBottom:`1px solid ${S.bd}`,overflowX:"auto"}}>{[["Price","$"+md[2].toFixed(2)],["Day",fd(md[14])],["Yld",md[3]!=null?md[3].toFixed(1)+"%":"–"],["1M",fc(md[4])],["1Y",fc(md[6])],["Cap","$"+md[7].toFixed(1)+"B"],["NAV",md[9]!=null?fc(md[9]):"–"]].map((m,i)=>{const cl=m[0]==="Day"?cc(md[14]):m[0]==="1M"?cc(md[4]):m[0]==="1Y"?cc(md[6]):m[0]==="NAV"?nc(md[9]):S.br;return<div key={i} style={{textAlign:"center",minWidth:52}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu,textTransform:"uppercase"}}>{m[0]}</div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,fontWeight:600,color:cl,marginTop:2}}>{m[1]}</div></div>;})}</div>
+<div style={{padding:"14px 18px"}}>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:8}}>Company Overview</div>
+<div style={{fontSize:12,color:S.tx,lineHeight:1.6,marginBottom:12}}>{DET.summary.description}</div>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 16px",marginBottom:14}}>{[["CEO",DET.summary.ceo],["HQ",DET.summary.headquarters],["Portfolio",DET.summary.portfolio_size],["Focus",DET.summary.market_focus]].map((a,i)=><div key={i}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu,textTransform:"uppercase"}}>{a[0]}</span><div style={{fontSize:11,color:S.br,marginTop:1}}>{a[1]}</div></div>)}</div>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:6}}>Major Holdings</div>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>{DET.summary.major_holdings.map((h,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:5,padding:"7px 9px"}}><div style={{fontSize:11,fontWeight:600,color:S.br}}>{h.name}</div><div style={{fontSize:9,color:S.mu}}>{h.location} · {h.type}</div>{h.detail&&<div style={{fontSize:9,color:S.tx,marginTop:2}}>{h.detail}</div>}</div>)}</div>
+<div style={{borderTop:`1px solid ${S.bd}`,margin:"14px 0"}}/>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:8}}>Recent News & Analysis</div>
+{DET.news.map((it,i)=><div key={i} style={{padding:"10px 0",borderBottom:i<DET.news.length-1?`1px solid ${S.bd}`:"none"}}><div style={{fontSize:12.5,color:S.br,marginBottom:3,display:"flex",alignItems:"center",gap:6}}><span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:sc(it.sentiment),flexShrink:0}}/>{it.headline}</div><div style={{fontSize:11,color:S.mu,lineHeight:1.5}}>{it.summary}</div><div style={{marginTop:4,fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.tx,opacity:.4}}>{it.source} · {it.date}</div></div>)}</div></div></div>}
+
+<div style={{borderTop:`1px solid ${S.bd}`,padding:"6px 24px",display:"flex",justifyContent:"space-between",flexShrink:0,background:S.sf}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>REIT Daily Observer · Starwood Capital Group · {dstr}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>Live: Yahoo Finance (5min) · Analysis: Claude AI · Baseline: Green Street / SNL</span></div>
+</div>);}
+
+ReactDOM.render(React.createElement(App),document.getElementById("root"));
+</script>
+</body></html>
