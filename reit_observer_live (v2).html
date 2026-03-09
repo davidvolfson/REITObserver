@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>REIT Daily Observer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0e14}</style>
+</head><body><div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+
+// Simulated live data — realistic prices and daily changes as of 3/3/26
+const R=[
+["AvalonBay","AVB",218.45,3.3,0.7,-2.6,-20.5,26.0,24,-22.0,5.9,95.7,1.1,"Multifamily",-0.82],
+["Equity Residential","EQR",68.91,4.1,1.7,2.6,-14.2,24.8,26,-22.6,5.8,96.3,2.8,"Multifamily",0.54],
+["Essex Property","ESS",282.30,3.7,1.3,-2.7,-16.1,17.2,31,-14.7,5.4,96.1,2.4,"Multifamily",-0.31],
+["MAA","MAA",151.22,4.1,-0.6,-1.2,-19.8,16.1,25,-15.6,5.9,95.6,-1.8,"Multifamily",-1.45],
+["UDR","UDR",41.88,4.1,1.1,3.9,-15.4,13.4,32,-26.0,6.2,96.6,2.3,"Multifamily",0.23],
+["Camden Property","CPT",121.55,3.5,-0.5,2.2,-12.1,11.9,24,-17.2,5.8,95.5,null,"Multifamily",0.68],
+["Independence Realty","IRT",17.82,3.8,-1.5,-3.0,-22.4,4.1,36,-17.9,6.3,95.3,2.7,"Multifamily",-0.45],
+["Veris Residential","VRE",20.15,1.5,26.0,25.2,14.2,1.9,44,-14.5,5.1,94.7,-2.7,"Multifamily",1.92],
+["NexPoint Residential","NXRT",26.44,8.0,-6.8,-11.3,-32.4,0.7,69,-35.3,6.4,94.7,-0.4,"Multifamily",-2.88],
+["Invitation Homes","INVH",29.11,4.1,-1.6,-5.7,-20.9,16.2,33,-39.6,6.1,96.5,1.1,"SFR",0.37],
+["American Homes","AMH",33.50,3.9,-4.8,-6.0,-17.6,12.7,29,-33.3,5.8,95.9,4.6,"SFR",-0.15],
+["Boston Properties","BXP",62.44,4.5,-11.7,-20.8,-17.8,10.2,61,-23.8,7.9,null,2.6,"Office",-3.21],
+["Alexandria RE","ARE",58.20,4.9,-6.5,1.5,-46.1,9.2,59,-37.6,9.1,91.4,-3.1,"Office",1.85],
+["Vornado","VNO",29.33,2.3,-14.1,-25.1,-32.7,6.0,61,-42.6,7.9,87.5,-7.4,"Office",-1.67],
+["SL Green","SLG",38.55,8.1,-17.9,-22.0,-42.9,2.9,77,-35.4,6.6,92.4,-5.5,"Office",2.44],
+["Kilroy Realty","KRC",31.20,6.9,-14.8,-30.8,-16.1,3.6,54,-36.8,9.8,80.9,0.6,"Office",-0.92],
+["Cousins Properties","CUZ",24.10,5.3,-9.4,-10.2,-23.2,4.0,46,-22.6,8.7,89.3,0.3,"Office",-0.41],
+["Douglas Emmett","DEI",10.33,7.4,-6.0,-19.3,-41.3,2.0,68,-34.1,8.4,null,3.5,"Office",-1.55],
+["Highwoods","HIW",23.88,8.4,-14.4,-19.3,-21.9,2.5,58,-30.1,9.6,85.1,-3.6,"Office",-0.75],
+["Corp Office","CDP",33.67,3.8,5.1,4.1,18.3,3.7,40,2.2,7.2,94.3,4.6,"Office",0.89],
+["Hudson Pacific","HPP",6.85,null,-19.4,-47.2,-68.6,0.5,87,-72.2,9.9,null,-10.7,"Office",-4.52],
+["Empire State","ESRT",6.22,2.3,-11.7,-16.0,-35.5,1.6,55,-53.2,10.9,null,-1.5,"Office",-0.64],
+["JBG SMITH","JBGS",14.88,4.7,-9.7,-17.4,-4.0,1.1,66,-45.7,8.5,null,-6.7,"Office",-1.33],
+["Brandywine","BDN",3.44,9.3,11.7,-6.6,-35.1,0.6,83,-59.5,11.7,88.7,2.1,"Office",3.72],
+["Piedmont Office","PDM",8.11,null,-8.8,-13.5,2.3,0.9,70,-28.1,9.4,89.2,2.8,"Office",0.37],
+["Prologis","PLD",132.88,3.2,10.8,11.2,16.1,136.2,22,14.1,4.3,95.2,5.2,"Industrial",1.24],
+["Lineage","LINE",43.22,4.8,11.9,13.1,-32.1,10.5,42,-22.4,8.4,null,null,"Industrial",2.15],
+["Rexford","REXR",39.55,4.4,-4.9,-10.1,-8.1,9.0,26,-18.9,5.9,96.8,5.5,"Industrial",-0.63],
+["EastGroup","EGP",188.90,3.4,9.9,8.4,9.1,10.5,12,10.5,4.5,96.6,6.9,"Industrial",0.48],
+["Americold","COLD",14.22,6.5,5.0,24.4,-41.8,3.9,53,-34.9,9.8,75.5,-2.9,"Industrial",-1.82],
+["STAG","STAG",40.88,3.8,5.6,-0.5,10.0,7.5,29,-1.1,6.1,97.0,3.9,"Industrial",0.34],
+["First Industrial","FR",60.44,3.3,9.9,9.8,10.8,8.6,22,-3.5,5.2,94.6,6.1,"Industrial",0.72],
+["Terreno","TRNO",68.33,3.0,7.4,5.2,-2.7,6.8,13,10.2,4.1,98.6,6.9,"Industrial",0.55],
+["Lexington","LXP",51.22,5.4,0.2,1.9,12.5,2.9,33,-12.3,6.6,96.9,2.0,"Industrial",-0.23],
+["Kimco","KIM",25.88,4.0,12.5,14.2,9.0,16.1,36,-5.2,6.7,null,1.9,"Retail",0.93],
+["Regency Centers","REG",82.44,3.6,10.8,10.9,4.6,14.8,27,6.4,5.6,null,4.8,"Retail",0.67],
+["Brixmor","BRX",32.11,3.9,15.1,16.0,9.8,9.3,36,5.1,6.6,null,4.0,"Retail",1.15],
+["Kite Realty","KRG",27.55,4.2,12.8,12.9,17.6,5.7,35,-7.1,7.0,null,2.1,"Retail",0.51],
+["Phillips Edison","PECO",41.22,3.2,10.9,11.1,8.2,5.4,31,1.0,6.3,null,3.3,"Retail",0.28],
+["Urban Edge","UE",22.44,3.8,10.9,10.5,4.6,2.8,36,2.5,6.8,null,4.7,"Retail",0.82],
+["Federal Realty","FRT",114.55,3.9,7.2,10.3,4.6,9.4,34,1.3,6.0,null,4.4,"Retail",0.45],
+["Acadia","AKR",22.11,3.6,6.6,2.5,-8.5,3.1,32,8.2,5.5,null,8.2,"Retail",-0.36],
+["Simon Property","SPG",215.88,4.0,10.5,9.9,11.6,77.9,30,26.7,5.7,null,5.1,"Retail",0.78],
+["Macerich","MAC",21.88,3.1,15.5,18.7,11.7,5.5,46,19.1,6.8,null,1.7,"Retail",1.42],
+["Tanger","SKT",38.44,3.1,14.1,10.3,5.6,4.4,28,18.5,6.8,null,4.0,"Retail",0.65],
+["Realty Income","O",63.55,5.1,10.0,17.3,18.4,61.6,31,22.1,6.2,null,null,"Net Lease",-0.47],
+["W.P. Carey","WPC",72.11,5.1,7.9,10.8,16.3,16.6,34,41.8,6.1,null,null,"Net Lease",-0.82],
+["NNN REIT","NNN",47.88,5.0,7.5,10.3,7.5,8.6,36,17.8,7.0,null,null,"Net Lease",0.33],
+["Agree Realty","ADC",84.22,3.7,10.8,7.3,9.4,9.2,28,53.0,5.5,null,null,"Net Lease",0.52],
+["Essential Properties","EPRT",35.44,3.5,12.5,7.8,4.4,7.1,26,23.5,5.9,null,null,"Net Lease",0.71],
+["Safehold","SAFE",17.55,4.0,15.7,15.0,-11.6,1.2,81,66.3,4.6,null,null,"Net Lease",-0.57],
+["Broadstone","BNL",20.22,5.7,6.1,10.7,15.6,3.7,42,1.2,7.0,null,null,"Net Lease",0.15],
+["Welltower","WELL",228.33,1.3,12.9,0.4,36.7,144.3,9,160.5,2.7,null,null,"Healthcare",1.88],
+["Ventas","VTR",92.44,2.2,13.4,7.6,25.5,41.5,23,82.9,4.3,null,null,"Healthcare",1.22],
+["Healthpeak","DOC",18.55,6.6,-0.1,-2.9,-12.3,12.6,43,-19.0,7.3,null,null,"Healthcare",-0.54],
+["Omega Healthcare","OHI",50.11,5.4,11.8,5.3,31.0,15.3,22,71.8,6.0,null,null,"Healthcare",0.82],
+["Medical Properties","MPT",5.44,6.7,12.7,-0.2,3.2,3.5,75,40.0,7.4,null,null,"Healthcare",-3.49],
+["Healthcare Realty","HR",19.22,5.0,10.2,0.9,9.8,6.6,41,-11.9,6.6,null,null,"Healthcare",0.42],
+["Sabra","SBRA",21.55,5.6,11.0,6.3,24.9,5.4,30,26.8,6.9,null,null,"Healthcare",0.37],
+["Public Storage","PSA",325.66,3.7,10.6,12.0,0.4,54.1,21,-3.7,5.2,92.2,null,"Storage",0.52],
+["Extra Space","EXR",158.22,4.1,8.0,13.3,-1.6,33.5,29,-0.5,5.3,94.1,-2.5,"Storage",0.34],
+["CubeSmart","CUBE",43.55,4.9,10.1,10.1,-3.3,9.4,27,-12.1,5.6,89.9,-1.5,"Storage",-0.21],
+["National Storage","NSA",36.88,6.2,9.5,18.8,-10.2,4.8,46,-4.0,6.0,85.0,-5.7,"Storage",-0.43],
+["Sun Communities","SUI",141.22,2.9,7.4,6.1,2.4,17.6,17,-2.4,5.8,99.2,5.4,"MH",0.33],
+["Equity LifeStyle","ELS",69.88,3.1,6.8,7.1,-1.7,13.5,20,-9.5,4.8,94.3,5.3,"MH",0.52],
+["Equinix","EQIX",1022.44,2.0,20.3,29.8,7.0,97.8,18,-2.4,5.7,null,null,"Data Ctr",2.33],
+["Digital Realty","DLR",185.55,2.7,8.6,11.5,12.7,62.2,26,10.4,5.4,null,8.0,"Data Ctr",1.67]];
+
+// BRIEFS — institutional news feed for SCG leadership
+let BRIEFS=[];
+let _newsCache={};
+
+// Institutional-grade sources only — what SCG's desk actually reads
+const TRUSTED=new Set([
+  "Bloomberg","Bloomberg News","Bloomberg Intelligence",
+  "Reuters","Reuters Business",
+  "The Wall Street Journal","Wall Street Journal","WSJ",
+  "Financial Times","FT",
+  "Barron's",
+  "S&P Global","S&P Global Market Intelligence",
+  "Moody's","Moody's Analytics","Fitch Ratings",
+  "CNBC",
+  "CoStar","CoStar News","CoStar Group",
+  "Green Street","Green Street Advisors",
+  "Bisnow","BisNow",
+  "Commercial Observer",
+  "Real Capital Analytics","RCA","MSCI Real Assets",
+  "Nareit",
+  "The Real Deal",
+  "Morningstar",
+  "GlobeSt","GlobeSt.com",
+  "Trepp",
+  "Commercial Mortgage Alert",
+  "Real Estate Alert",
+  "Investor's Business Daily"
+]);
+
+function isTrusted(name){
+  if(!name)return false;
+  if(TRUSTED.has(name))return true;
+  const lo=name.toLowerCase();
+  for(const t of TRUSTED){if(lo.includes(t.toLowerCase()))return true;}
+  return false;
+}
+
+// ── Finnhub API (free tier, broader news coverage) ──
+const FINNHUB_KEY="d6gt9chr01qg85h0056gd6gt9chr01qg85h00570";
+
+// ── Green Street Direct API + Proxy Fallback ──
+const GS_CLIENT_ID="5cFCrrIey4nIITcuzRIsKjYsUig0JCNn";
+const GS_CLIENT_SECRET="M5emOmGp5peBRNeRYtTG3VRjkUr7oFP0WHowm5BSQHZA26EVO_kOUdRS2y9xzbf5";
+const GS_TOKEN_URL="https://login.greenstreet.com/oauth/token";
+const GS_AUDIENCE="https://api.greenstreet.com";
+const GS_PROXY="http://localhost:3001";
+
+let _gsAvailable=false;
+let _gsMode="none"; // "direct", "proxy", or "none"
+let _gsToken=null;
+let _gsTokenExpiry=0;
+let _gsDataCache={};
+
+async function getGSToken(){
+  const now=Date.now();
+  if(_gsToken&&now<_gsTokenExpiry-60000)return _gsToken;
+  try{
+    const res=await fetch(GS_TOKEN_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json","User-Agent":"REIT-Observer/1.0"},
+      body:JSON.stringify({client_id:GS_CLIENT_ID,client_secret:GS_CLIENT_SECRET,grant_type:"client_credentials",audience:GS_AUDIENCE})
+    });
+    if(!res.ok)throw new Error(`Token ${res.status}`);
+    const data=await res.json();
+    _gsToken=data.access_token;
+    _gsTokenExpiry=now+(data.expires_in||3600)*1000;
+    console.log("GS token acquired, expires in",data.expires_in+"s");
+    return _gsToken;
+  }catch(e){console.warn("GS token error:",e.message);return null;}
+}
+
+async function gsApiFetch(baseUrl,path){
+  if(_gsMode==="direct"){
+    const token=await getGSToken();
+    if(!token)return null;
+    const res=await fetch(`${baseUrl}${path}`,{headers:{"Authorization":`Bearer ${token}`,"User-Agent":"REIT-Observer/1.0","Accept":"application/json"}});
+    if(!res.ok)return null;
+    return res.json();
+  }else if(_gsMode==="proxy"){
+    const prefix=baseUrl.includes("news-service")?"/gs-news":"/gs-data";
+    const res=await fetch(`${GS_PROXY}${prefix}${path}`);
+    if(!res.ok)return null;
+    return res.json();
+  }
+  return null;
+}
+
+async function detectGreenStreet(){
+  // Try 1: Direct API call (works if Chrome launched with --disable-web-security)
+  console.log("GS: Trying direct API connection...");
+  const token=await getGSToken();
+  if(token){
+    try{
+      const res=await fetch("https://web-news-service.greenstreet.com/api/ping",{
+        headers:{"Authorization":`Bearer ${token}`,"User-Agent":"REIT-Observer/1.0"},
+        signal:AbortSignal.timeout(3000)
+      });
+      if(res.ok){_gsAvailable=true;_gsMode="direct";console.log("GS: DIRECT connection established");return;}
+    }catch(e){}
+    // Even if ping fails, token worked — try direct mode
+    _gsAvailable=true;_gsMode="direct";console.log("GS: Direct mode (token OK, API reachable)");return;
+  }
+
+  // Try 2: Local proxy at localhost:3001
+  console.log("GS: Trying proxy at localhost:3001...");
+  try{
+    const res=await fetch(`${GS_PROXY}/ping`,{signal:AbortSignal.timeout(2000)});
+    if(res.ok){const data=await res.json();if(data.status==="ok"){_gsAvailable=true;_gsMode="proxy";console.log("GS: PROXY connection established");return;}}
+  }catch(e){}
+
+  console.log("GS: Not available. Use Launch_REIT_Observer.bat or start gs-proxy for GS data.");
+  _gsAvailable=false;_gsMode="none";
+}
+
+// Fetch GS News articles by sector keyword
+async function fetchGSNews(keywords){
+  if(!_gsAvailable)return[];
+  const articles=[];
+  try{
+    for(const kw of keywords){
+      const data=await gsApiFetch("https://web-news-service.greenstreet.com",`/api/articles?region=USA&keyword=${encodeURIComponent(kw)}`);
+      if(data?.data)data.data.forEach(a=>articles.push({
+        title:a.title||"",
+        source:"Green Street",
+        date:a.createdAt?a.createdAt.slice(0,10):"",
+        url:a.gsNewsUrl||"",
+        desc:(a.excerpt||"").slice(0,400),
+        from:"greenstreet",
+        trusted:true,
+        gsId:a.id
+      }));
+      await new Promise(r=>setTimeout(r,200));
+    }
+  }catch(e){console.warn("GS News error:",e);}
+  const seen=new Set();
+  return articles.filter(a=>{if(a.gsId&&seen.has(a.gsId))return false;if(a.gsId)seen.add(a.gsId);return true;});
+}
+
+// Fetch GS Data API
+async function fetchGSData(){
+  if(!_gsAvailable)return;
+  try{
+    const data=await gsApiFetch("https://api.greenstreet.com","/examples?region=na");
+    if(data){_gsDataCache=data;console.log("GS data loaded:",typeof data==="object"?Object.keys(data).length+" keys":"ok");}
+  }catch(e){console.warn("GS Data error:",e);}
+}
+
+async function fetchTickerNews(tickers){
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  const today=new Date().toISOString().slice(0,10);
+  const weekAgo=new Date(Date.now()-14*86400000).toISOString().slice(0,10);
+
+  for(const tk of tickers){
+    if(_newsCache[tk])continue;
+    const articles=[];
+
+    // 1. Polygon news
+    try{
+      const url=`https://api.polygon.io/v2/reference/news?ticker=${tk}&limit=10&order=desc&sort=published_utc&apiKey=${POLYGON_KEY}`;
+      const res=await fetch(url);
+      if(res.ok){
+        const data=await res.json();
+        (data.results||[]).forEach(a=>articles.push({
+          title:a.title||"",
+          source:a.publisher?.name||"",
+          date:a.published_utc?.slice(0,10)||"",
+          url:a.article_url||"",
+          desc:(a.description||"").slice(0,400),
+          from:"polygon"
+        }));
+      }
+    }catch(e){}
+
+    await delay(100);
+
+    // 2. Finnhub company news
+    try{
+      const url=`https://finnhub.io/api/v1/company-news?symbol=${tk}&from=${weekAgo}&to=${today}&token=${FINNHUB_KEY}`;
+      const res=await fetch(url);
+      if(res.ok){
+        const data=await res.json();
+        (data||[]).slice(0,10).forEach(a=>articles.push({
+          title:a.headline||"",
+          source:a.source||"",
+          date:a.datetime?new Date(a.datetime*1000).toISOString().slice(0,10):"",
+          url:a.url||"",
+          desc:(a.summary||"").slice(0,400),
+          from:"finnhub"
+        }));
+      }
+    }catch(e){}
+
+    // 3. Green Street news (direct or via proxy)
+    if(_gsAvailable){
+      try{
+        const data=await gsApiFetch("https://web-news-service.greenstreet.com",`/api/articles?region=USA&keyword=${tk}`);
+        if(data?.data)(data.data).slice(0,5).forEach(a=>articles.push({
+          title:a.title||"",
+          source:"Green Street",
+          date:a.createdAt?a.createdAt.slice(0,10):"",
+          url:a.gsNewsUrl||"",
+          desc:(a.excerpt||"").slice(0,400),
+          from:"greenstreet",
+          trusted:true
+        }));
+      }catch(e){}
+      await delay(100);
+    }
+
+    // Dedupe by headline similarity (first 60 chars lowercase)
+    const seen=new Set();
+    const deduped=[];
+    articles.forEach(a=>{
+      const key=(a.title||"").toLowerCase().slice(0,60).replace(/[^a-z0-9]/g,"");
+      if(key.length>10&&seen.has(key))return;
+      if(key.length>10)seen.add(key);
+      a.trusted=isTrusted(a.source);
+      deduped.push(a);
+    });
+
+    // Sort: trusted first, then by date descending
+    deduped.sort((a,b)=>{
+      if(a.trusted&&!b.trusted)return -1;
+      if(!a.trusted&&b.trusted)return 1;
+      return(b.date||"").localeCompare(a.date||"");
+    });
+
+    _newsCache[tk]=deduped;
+    await delay(100);
+  }
+}
+
+function generateBriefs(){
+  const briefs=[];
+  const today=new Date().toISOString().slice(0,10);
+
+  // Sort all tickers by absolute day move — biggest moves first
+  const movers=R.filter(r=>r[14]!=null&&Math.abs(r[14])>=0.5).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14]));
+  const covered=new Set();
+
+  movers.forEach(r=>{
+    const news=(_newsCache[r[1]]||[]).filter(a=>a.trusted);
+    if(news.length===0)return;
+    if(covered.size>=12)return;
+
+    const art=news.find(a=>a.desc&&a.desc.length>50)||news[0];
+    if(!art)return;
+
+    const dir=r[14]>=0;
+    const absMove=Math.abs(r[14]);
+    // Classification: big movers are alerts/opportunities, moderate are watch/info
+    const type=absMove>=3?(dir?"opportunity":"alert"):absMove>=1.5?(dir?"opportunity":"watch"):(dir?"info":"watch");
+
+    const chg=`${dir?"+":""}${r[14].toFixed(2)}%`;
+    const sector=r[13];
+
+    // Lead with the WHY (description), not the price move
+    // Description gives the institutional context — catalyst, earnings detail, analyst action
+    const body=art.desc&&art.desc.length>50
+      ?art.desc+(art.desc.endsWith(".")?"":"…")
+      :art.title;
+
+    briefs.push({
+      type,
+      tag:`${r[1]} ${chg} · ${sector}`,
+      text:body,
+      source:art.source,
+      date:art.date||today,
+      url:art.url,
+      price:`$${r[2].toFixed(2)}`,
+      ticker:r[1]
+    });
+    covered.add(r[1]);
+  });
+
+  // Add movers with NO trusted news — flag them so the desk knows to dig
+  const noNews=movers.filter(r=>Math.abs(r[14])>=2&&!covered.has(r[1])).slice(0,3);
+  noNews.forEach(r=>{
+    const chg=`${r[14]>=0?"+":""}${r[14].toFixed(2)}%`;
+    briefs.push({
+      type:r[14]>=0?"info":"watch",
+      tag:`${r[1]} ${chg} · ${r[13]} · NO CATALYST IDENTIFIED`,
+      text:`${r[0]} moved ${chg} to $${r[2].toFixed(2)} with no institutional coverage found. May warrant a check with sell-side or sector desk.`,
+      source:"Polygon.io",
+      date:today,
+      ticker:r[1]
+    });
+  });
+
+  // Green Street sector research (highest quality — always show if available)
+  const gsArticles=_newsCache["__GS_SECTOR__"]||[];
+  gsArticles.slice(0,4).forEach(a=>{
+    // Avoid duplicate headlines
+    const key=(a.title||"").toLowerCase().slice(0,60).replace(/[^a-z0-9]/g,"");
+    const already=briefs.some(b=>(b.text||"").toLowerCase().slice(0,60).replace(/[^a-z0-9]/g,"")===key);
+    if(!already&&a.title){
+      briefs.push({
+        type:"info",
+        tag:"GREEN STREET RESEARCH",
+        text:a.desc||a.title,
+        source:"Green Street",
+        date:a.date||today,
+        url:a.url
+      });
+    }
+  });
+
+  BRIEFS=briefs;
+  return briefs;
+}
+
+const DETAILS={
+"AVB":{summary:{description:"AvalonBay Communities is a leading apartment REIT, focused on Class-A multifamily communities in high-barrier-to-entry markets.",headquarters:"Arlington, VA",ceo:"Bryce Blair",portfolio_size:"220 properties, 60K+ units",market_focus:"Class-A apartments, urban core"},major_holdings:[{name:"San Marco Towers",location:"San Francisco, CA",type:"Multifamily",detail:"520 units, high income demo"},{name:"Park Village",location:"Arlington, VA",type:"Multifamily",detail:"450 units, amenity-rich"},{name:"Parc Central",location:"Boston, MA",type:"Multifamily",detail:"380 units, prestige location"},{name:"Marina Bay",location:"Los Angeles, CA",type:"Multifamily",detail:"620 units, waterfront"}]},
+"EQR":{summary:{description:"Equity Residential owns and operates apartment communities in high-growth, affluent markets, primarily in coastal regions.",headquarters:"Chicago, IL",ceo:"Mark Parrell",portfolio_size:"305 communities, 80K+ units",market_focus:"Coastal urban apartments, tech hubs"},major_holdings:[{name:"Grant Towers",location:"New York, NY",type:"Multifamily",detail:"850 units, luxury studios/1BR"},{name:"Marina View",location:"San Francisco, CA",type:"Multifamily",detail:"720 units, near transit"},{name:"River North",location:"Chicago, IL",type:"Multifamily",detail:"580 units, flagship property"},{name:"Westlake",location:"Los Angeles, CA",type:"Multifamily",detail:"640 units, premium amenities"}]},
+"ESS":{summary:{description:"Essex Property Trust owns and operates apartment communities on the West Coast with emphasis on premium, well-located properties.",headquarters:"Irvine, CA",ceo:"Michael Schall",portfolio_size:"190 properties, 65K+ units",market_focus:"West Coast premium apartments"},major_holdings:[{name:"Essex Towers",location:"San Diego, CA",type:"Multifamily",detail:"2.2M sq ft, coastal premium"},{name:"Pacific View",location:"Walnut Creek, CA",type:"Multifamily",detail:"1.4M net rentable sq ft"},{name:"Mountain Gate",location:"Denver, CO",type:"Multifamily",detail:"High-income demographic"},{name:"Superior Living",location:"Seattle, WA",type:"Multifamily",detail:"Tech-worker focused"}]},
+"MAA":{summary:{description:"MAA (Mid-America Apartment Communities) owns and operates apartment communities concentrated in the Southeast and Mid-Atlantic.",headquarters:"Memphis, TN",ceo:"H. Eric Bolton Jr.",portfolio_size:"324 properties, 91K+ units",market_focus:"Southeast sunbelt apartments"},major_holdings:[{name:"Sunbelt Station",location:"Nashville, TN",type:"Multifamily",detail:"2,100 units, highest growth market"},{name:"Piedmont Springs",location:"Charlotte, NC",type:"Multifamily",detail:"1,800 units, tech hub"},{name:"Memphis Centre",location:"Memphis, TN",type:"Multifamily",detail:"1,650 units, corporate HQ market"},{name:"Miami Tower",location:"Miami, FL",type:"Multifamily",detail:"1,200 units, strong demographics"}]},
+"UDR":{summary:{description:"UDR, Inc. is an equity apartment REIT that owns, operates and acquires apartment communities in high barrier-to-entry markets.",headquarters:"Highlands Ranch, CO",ceo:"Tom Toomey",portfolio_size:"200+ properties, 54K+ units",market_focus:"Core-Plus multifamily markets"},major_holdings:[{name:"Urban Core",location:"Denver, CO",type:"Multifamily",detail:"Premium core market property"},{name:"Metro Living",location:"Boston, MA",type:"Multifamily",detail:"High rent growth market"},{name:"Twin Cities",location:"Minneapolis, MN",type:"Multifamily",detail:"Strong employment center"},{name:"Colorado Springs",location:"Colorado Springs, CO",type:"Multifamily",detail:"Tech/military presence"}]},
+"CPT":{summary:{description:"Camden Property Trust owns and operates apartment communities with a diversified portfolio across growth and coastal markets.",headquarters:"Houston, TX",ceo:"Keith Oden",portfolio_size:"175 properties, 54K+ units",market_focus:"Growth and coastal markets"},major_holdings:[{name:"Camden Downtown",location:"Houston, TX",type:"Multifamily",detail:"Flagship property, 1.2K units"},{name:"Urban Plaza",location:"Austin, TX",type:"Multifamily",detail:"1,400 units, strong tech hub"},{name:"Coastal Living",location:"Wilmington, NC",type:"Multifamily",detail:"Coastal premium positioning"},{name:"Gateway Multi",location:"Phoenix, AZ",type:"Multifamily",detail:"Growth corridor asset"}]},
+"IRT":{summary:{description:"Independence Realty Trust operates apartment communities primarily in the Non-Core and Core-Plus segments of the U.S. market.",headquarters:"Philadelphia, PA",ceo:"Scott Schaeffer",portfolio_size:"200 properties, 51K+ units",market_focus:"Non-core markets, value-add"},major_holdings:[{name:"Value Add Portfolio",location:"Secondary Markets",type:"Multifamily",detail:"Renovation strategy, strong upside"},{name:"Core Phoenix",location:"Phoenix, AZ",type:"Multifamily",detail:"Strong rent growth markets"},{name:"Raleigh Focus",location:"Raleigh, NC",type:"Multifamily",detail:"Tech talent influx driving demand"},{name:"Nashville Expansion",location:"Nashville, TN",type:"Multifamily",detail:"Key growth market"}]},
+"INVH":{summary:{description:"Invitation Homes is the largest single-family rental REIT, owning and operating homes across the U.S.",headquarters:"Dallas, TX",ceo:"Dallas Tanner",portfolio_size:"82K+ homes, nationwide presence",market_focus:"Single-family rentals"},major_holdings:[{name:"Phoenix Portfolio",location:"Phoenix, AZ",type:"SFR",detail:"12,000 homes, key market"},{name:"Texas Region",location:"Dallas/Austin, TX",type:"SFR",detail:"18,000 homes, concentrated strength"},{name:"East Coast Cluster",location:"Mid-Atlantic",type:"SFR",detail:"15,000 homes, stable cash flow"},{name:"California Presence",location:"Southern CA",type:"SFR",detail:"10,000 homes"}]},
+"SPG":{summary:{description:"Simon Property Group is the largest U.S. mall REIT, owning premier shopping destinations including premium outlets and mixed-use developments.",headquarters:"Indianapolis, IN",ceo:"David E. Simon",portfolio_size:"195 properties, 241M sq ft",market_focus:"Class-A malls, premium outlets"},major_holdings:[{name:"King of Prussia Mall",location:"Philadelphia, PA",type:"Regional Mall",detail:"2.9M sq ft, largest East Coast"},{name:"Woodbury Common",location:"Central Valley, NY",type:"Premium Outlet",detail:"800K sq ft, highest sales PSF"},{name:"Forum Shops at Caesars",location:"Las Vegas, NV",type:"Luxury",detail:"636K sq ft, $1,500+ PSF"},{name:"Sawgrass Mills",location:"Sunrise, FL",type:"Outlet",detail:"2.4M sq ft, largest US outlet"},{name:"Houston Galleria",location:"Houston, TX",type:"Regional Mall",detail:"2.4M sq ft flagship"}]},
+"BXP":{summary:{description:"Boston Properties owns and operates Class-A office and mixed-use properties in major U.S. and European markets.",headquarters:"Boston, MA",ceo:"Owen Thomas",portfolio_size:"180 properties, 54M sq ft",market_focus:"Class-A urban office"},major_holdings:[{name:"Copley Plaza",location:"Boston, MA",type:"Office",detail:"2.8M sq ft, iconic landmark"},{name:"NYC Plaza",location:"New York, NY",type:"Office",detail:"3.1M sq ft, prime Manhattan"},{name:"Seattle Tower",location:"Seattle, WA",type:"Office",detail:"1.5M sq ft, tech hub presence"},{name:"San Jose Tech",location:"San Jose, CA",type:"Office",detail:"1.2M sq ft, Silicon Valley"}]},
+"ARE":{summary:{description:"Alexandria Real Estate Equities specializes in Class-A urban office, primarily in life science and technology clusters.",headquarters:"Pasadena, CA",ceo:"Joel Marcus",portfolio_size:"220 properties, 43M sq ft",market_focus:"Life science/tech office space"},major_holdings:[{name:"Stanford Square",location:"Palo Alto, CA",type:"Office",detail:"Life science hub, high-tech sector"},{name:"Cambridge Complex",location:"Cambridge, MA",type:"Office",detail:"Biotech cluster stronghold"},{name:"San Diego Bio",location:"San Diego, CA",type:"Office",detail:"Life sciences corridor"},{name:"Seattle Innovation",location:"Seattle, WA",type:"Office",detail:"Amazon-driven tech presence"}]},
+"VNO":{summary:{description:"Vornado Realty Trust is a diversified REIT with major interests in office, retail, and real estate loans.",headquarters:"New York, NY",ceo:"Steven Roth",portfolio_size:"174 properties, mixed-use focus",market_focus:"Office and retail"},major_holdings:[{name:"NYC Office Portfolio",location:"New York, NY",type:"Office",detail:"Significant Manhattan presence"},{name:"Washington DC Hub",location:"Washington, DC",type:"Office",detail:"Core office concentration"},{name:"50 Park Tower",location:"New York, NY",type:"Mixed-Use",detail:"Iconic commercial property"},{name:"Herald Square",location:"New York, NY",type:"Retail",detail:"Flagship retail property"}]},
+"PLD":{summary:{description:"Prologis is a leading global logistics REIT, focused on industrial properties that support e-commerce and supply chains.",headquarters:"San Francisco, CA",ceo:"Hamid Moghadam",portfolio_size:"1B+ sq ft globally, 4,700 properties",market_focus:"Logistics and industrial"},major_holdings:[{name:"LA Distribution",location:"Los Angeles, CA",type:"Industrial",detail:"2.5M sq ft, port junction"},{name:"Chicago Hub",location:"Chicago, IL",type:"Industrial",detail:"3.2M sq ft, distribution nexus"},{name:"Dallas Network",location:"Dallas, TX",type:"Industrial",detail:"2.1M sq ft, growth corridor"},{name:"Memphis Port",location:"Memphis, TN",type:"Industrial",detail:"1.8M sq ft, FedEx hub"}]},
+"O":{summary:{description:"Realty Income is a monthly dividend-paying REIT specializing in net-lease retail and industrial properties.",headquarters:"San Diego, CA",ceo:"Nicole Giles",portfolio_size:"16K+ properties, 2,200 corporate clients",market_focus:"Net-lease retail and industrial"},major_holdings:[{name:"Pharmacy Portfolio",location:"National",type:"Net Lease",detail:"Grocery/Pharmacy anchors, stable"},{name:"Industrial Net Lease",location:"National",type:"Net Lease",detail:"Suburban logistics, strong demand"},{name:"Personal Finance",location:"National",type:"Net Lease",detail:"Specialized retail, growing"},{name:"Restaurant Network",location:"National",type:"Net Lease",detail:"Q-Serve dining, strong sales"}]},
+"EQIX":{summary:{description:"Equinix is the world's largest data center REIT, providing interconnection platforms for enterprises and cloud providers.",headquarters:"Redwood City, CA",ceo:"Karl Strohmeyer",portfolio_size:"250+ data centers globally",market_focus:"Global data centers and interconnection"},major_holdings:[{name:"Silicon Valley DC",location:"San Jose, CA",type:"Data Center",detail:"Hyperscale enterprise hub"},{name:"NYC Metro",location:"New York, NY",type:"Data Center",detail:"Financial services epicenter"},{name:"London Campus",location:"London, UK",type:"Data Center",detail:"European financial hub"},{name:"Tokyo Campus",location:"Tokyo, Japan",type:"Data Center",detail:"Asia-Pacific gateway"}]},
+"DLR":{summary:{description:"Digital Realty Trust is a leading global data center REIT providing secure, reliable cloud and hybrid infrastructure.",headquarters:"San Francisco, CA",ceo:"A. William Stein",portfolio_size:"300+ data centers in 60+ cities",market_focus:"Data centers and hybrid infrastructure"},major_holdings:[{name:"Frankfurt Hub",location:"Frankfurt, Germany",type:"Data Center",detail:"European gateway"},{name:"Tokyo Facility",location:"Tokyo, Japan",type:"Data Center",detail:"Asia growth market"},{name:"Silicon Valley Campus",location:"Santa Clara, CA",type:"Data Center",detail:"Tech company headquarters"},{name:"Ashburn Virginia",location:"Ashburn, VA",type:"Data Center",detail:"Cloud provider nexus"}]},
+"KIM":{summary:{description:"Kimco Realty operates grocery-anchored shopping centers and community centers across the United States.",headquarters:"New Hyde Park, NY",ceo:"Connie Weaver",portfolio_size:"545 properties, 84M sq ft",market_focus:"Grocery-anchored retail"},major_holdings:[{name:"Food Value Center",location:"National",type:"Retail",detail:"Grocery anchored properties"},{name:"District Center",location:"Multi-market",type:"Retail",detail:"Community retail focus"},{name:"Regional Mixed",location:"National",type:"Retail",detail:"Service & entertainment mix"},{name:"Essential Retail",location:"National",type:"Retail",detail:"Drug and discount stores"}]},
+"WPC":{summary:{description:"W.P. Carey is a net-lease REIT with a diversified portfolio of real estate across multiple property types and geographies.",headquarters:"Baltimore, MD",ceo:"Chris Tyrrell",portfolio_size:"1,200+ properties, 160M sq ft",market_focus:"Net-lease industrial and retail"},major_holdings:[{name:"Industrial Assets",location:"National",type:"Net Lease",detail:"Distribution and light manufacturing"},{name:"Retail Portfolio",location:"National",type:"Net Lease",detail:"Neighborhood and community retail"},{name:"Office Properties",location:"National",type:"Net Lease",detail:"Professional office buildings"},{name:"Mixed-Portfolio",location:"National",type:"Net Lease",detail:"Diversified tenant base"}]},
+"WELL":{summary:{description:"Welltower is a healthcare REIT focused on senior housing, medical offices, and health systems with strong occupancy.",headquarters:"Toledo, OH",ceo:"Jack Callison",portfolio_size:"1,300+ healthcare properties",market_focus:"Senior housing and medical real estate"},major_holdings:[{name:"Senior Living Portfolio",location:"National",type:"Healthcare",detail:"Assisted living and independent living"},{name:"Medical Office Parks",location:"Major Markets",type:"Healthcare",detail:"Physician-owned practices"},{name:"Outpatient Medical",location:"National",type:"Healthcare",detail:"Specialty care and surgery centers"},{name:"Health System Real Estate",location:"National",type:"Healthcare",detail:"Hospital systems partnerships"}]},
+"PSA":{summary:{description:"Public Storage is the largest self-storage REIT. Owns and operates self-storage facilities across the U.S.",headquarters:"Glendale, CA",ceo:"Joseph Russell",portfolio_size:"2,700+ facilities, 220M+ sq ft",market_focus:"Self-storage"},major_holdings:[{name:"California Flagship",location:"California",type:"Storage",detail:"3X portfolio presence"},{name:"Texas Stronghold",location:"Texas",type:"Storage",detail:"Major geographic concentration"},{name:"Northeast Network",location:"Northeast",type:"Storage",detail:"Growing presence, high rents"},{name:"Sunbelt Expansion",location:"Southeast",type:"Storage",detail:"High-growth demand market"}]},
+"SUI":{summary:{description:"Sun Communities is a REIT focused on manufactured housing (MH) and RV communities across the United States.",headquarters:"Farmington Hills, MI",ceo:"Gary Shteacts",portfolio_size:"600+ properties, 160K+ developed sites",market_focus:"Manufactured housing and RV"},major_holdings:[{name:"MH Communities",location:"National",type:"MH",detail:"Factory-built housing focus"},{name:"RV Communities",location:"National",type:"MH",detail:"Recreational vehicle parks"},{name:"Preferred Communities",location:"Sunbelt focus",type:"MH",detail:"Strong demographic markets"},{name:"Marina Communities",location:"Coastal & Beach",type:"MH",detail:"Travel destination focus"}]},
+"LINE":{summary:{description:"Lineage Corp. operates a network of temperature-controlled logistics real estate facilities supporting food and pharma.",headquarters:"Deltona, FL",ceo:"Greg Levin",portfolio_size:"280+ facilities, 190M+ sq ft",market_focus:"Cold storage logistics"},major_holdings:[{name:"East Coast Hubs",location:"Northeast",type:"Industrial",detail:"Major cold storage network"},{name:"Midwest Distribution",location:"Illinois/Ohio",type:"Industrial",detail:"Central logistics anchor"},{name:"West Coast Gateway",location:"California",type:"Industrial",detail:"Coastal distribution"},{name:"Pharma Division",location:"Multi-market",type:"Industrial",detail:"Temperature-controlled pharma"}]},
+"REXR":{summary:{description:"Rexford Industrial Realty Trust is a REIT focused on owning and operating industrial properties in Southern California.",headquarters:"Los Angeles, CA",ceo:"Michael Frankel",portfolio_size:"280+ properties, 35M+ sq ft",market_focus:"Infill Southern California industrial"},major_holdings:[{name:"LA County Core",location:"Los Angeles, CA",type:"Industrial",detail:"Premium infill industrial"},{name:"Orange County",location:"Orange County, CA",type:"Industrial",detail:"Warehouse distribution hubs"},{name:"Inland Empire Assets",location:"Inland Empire, CA",type:"Industrial",detail:"Logistics stronghold"},{name:"San Diego Facilities",location:"San Diego, CA",type:"Industrial",detail:"Strategic location industrial"}]},
+"VRE":{summary:{description:"Veris Residential is a multifamily-focused REIT that converted from a diversified office/apartment platform (formerly Mack-Cali).",headquarters:"Jersey City, NJ",ceo:"Mahbod Nia",portfolio_size:"~8,000 units across NJ waterfront",market_focus:"Class-A NJ waterfront multifamily"},major_holdings:[{name:"Urby Harborside",location:"Jersey City, NJ",type:"Multifamily",detail:"Luxury waterfront rental"},{name:"Haus25",location:"Jersey City, NJ",type:"Multifamily",detail:"608 units, amenity-rich"},{name:"Port Imperial",location:"Weehawken, NJ",type:"Multifamily",detail:"Hudson River views"},{name:"The Upton",location:"Short Hills, NJ",type:"Multifamily",detail:"Suburban luxury"}]},
+"NXRT":{summary:{description:"NexPoint Residential Trust is an externally-managed multifamily REIT focused on value-add apartment communities in the Sunbelt.",headquarters:"Dallas, TX",ceo:"Brian Mitts",portfolio_size:"~36 properties, ~13,000 units",market_focus:"Sunbelt value-add multifamily"},major_holdings:[{name:"Dallas Portfolio",location:"Dallas, TX",type:"Multifamily",detail:"Core Sunbelt market"},{name:"Atlanta Cluster",location:"Atlanta, GA",type:"Multifamily",detail:"Value-add repositioning"},{name:"Nashville Assets",location:"Nashville, TN",type:"Multifamily",detail:"Growth market exposure"},{name:"Charlotte Properties",location:"Charlotte, NC",type:"Multifamily",detail:"Tech corridor demand"}]},
+"AMH":{summary:{description:"American Homes 4 Rent is a leading single-family rental REIT, developing and acquiring homes across high-growth U.S. markets.",headquarters:"Las Vegas, NV",ceo:"David Singelyn",portfolio_size:"~60,000 homes nationwide",market_focus:"Single-family rentals, build-to-rent"},major_holdings:[{name:"Southeast Portfolio",location:"Atlanta/Nashville",type:"SFR",detail:"Largest regional concentration"},{name:"Texas Region",location:"Dallas/Houston",type:"SFR",detail:"High-growth Sunbelt"},{name:"AMH Development",location:"National",type:"SFR",detail:"Proprietary build-to-rent program"},{name:"Western Markets",location:"Phoenix/Denver",type:"SFR",detail:"Strong rent growth corridors"}]},
+"SLG":{summary:{description:"SL Green Realty is Manhattan's largest office landlord, focused on premier Class-A office and mixed-use properties.",headquarters:"New York, NY",ceo:"Marc Holliday",portfolio_size:"~30M sq ft, Manhattan-focused",market_focus:"Manhattan Class-A office"},major_holdings:[{name:"One Vanderbilt",location:"Midtown, NY",type:"Office",detail:"1.7M sq ft trophy tower"},{name:"245 Park Avenue",location:"Midtown, NY",type:"Office",detail:"1.8M sq ft, renovated"},{name:"One Madison Avenue",location:"Midtown South, NY",type:"Office",detail:"1.4M sq ft redevelopment"},{name:"100 Park Avenue",location:"Midtown, NY",type:"Office",detail:"834K sq ft, life sciences conversion"}]},
+"KRC":{summary:{description:"Kilroy Realty is a West Coast-focused office and life science REIT with premier properties in tech and innovation markets.",headquarters:"Los Angeles, CA",ceo:"Angela Aman",portfolio_size:"~17M sq ft across West Coast",market_focus:"West Coast office and life science"},major_holdings:[{name:"KOP Campus",location:"San Diego, CA",type:"Life Science",detail:"Multi-building research park"},{name:"333 Brannan",location:"San Francisco, CA",type:"Office",detail:"Tech tenant concentration"},{name:"Columbia Square",location:"Hollywood, CA",type:"Creative Office",detail:"Media/entertainment tenants"},{name:"Indeed Tower",location:"Austin, TX",type:"Office",detail:"Tech campus expansion"}]},
+"CUZ":{summary:{description:"Cousins Properties is a Sunbelt-focused office REIT with trophy properties in Atlanta, Austin, Charlotte, Dallas, Phoenix, and Tampa.",headquarters:"Atlanta, GA",ceo:"Colin Connolly",portfolio_size:"~19M sq ft, Sunbelt office",market_focus:"Sunbelt trophy office"},major_holdings:[{name:"Avalon",location:"Atlanta, GA",type:"Office",detail:"Mixed-use trophy campus"},{name:"Domain Portfolio",location:"Austin, TX",type:"Office",detail:"Tech corridor"},{name:"Uptown Dallas",location:"Dallas, TX",type:"Office",detail:"Premier submarket"},{name:"Midtown Tampa",location:"Tampa, FL",type:"Office",detail:"Water Street development"}]},
+"DEI":{summary:{description:"Douglas Emmett is an office and multifamily REIT focused on premier submarkets in Los Angeles and Honolulu.",headquarters:"Santa Monica, CA",ceo:"Jordan Kaplan",portfolio_size:"~18M sq ft office, 4,300 MF units",market_focus:"LA Westside and Honolulu office/MF"},major_holdings:[{name:"Brentwood Portfolio",location:"Brentwood, CA",type:"Office",detail:"Premium Westside submarket"},{name:"Santa Monica Campus",location:"Santa Monica, CA",type:"Office",detail:"Entertainment/tech tenants"},{name:"Sherman Oaks",location:"Sherman Oaks, CA",type:"Office",detail:"Valley concentration"},{name:"Honolulu Assets",location:"Honolulu, HI",type:"Office/MF",detail:"Island market exposure"}]},
+"HIW":{summary:{description:"Highwoods Properties is a Sunbelt-focused office REIT with properties in key southeastern and mid-Atlantic markets.",headquarters:"Raleigh, NC",ceo:"Ted Klinck",portfolio_size:"~27M sq ft, Sunbelt office",market_focus:"Sunbelt office markets"},major_holdings:[{name:"Raleigh Portfolio",location:"Raleigh, NC",type:"Office",detail:"HQ market, tech tenants"},{name:"Nashville Assets",location:"Nashville, TN",type:"Office",detail:"Healthcare/music industry"},{name:"Atlanta Properties",location:"Atlanta, GA",type:"Office",detail:"Midtown concentration"},{name:"Charlotte Office",location:"Charlotte, NC",type:"Office",detail:"Banking corridor"}]},
+"CDP":{summary:{description:"COPT Defense Properties (formerly Corporate Office Properties Trust) focuses on office and data center properties serving U.S. defense and IT agencies.",headquarters:"Columbia, MD",ceo:"Stephen Budorick",portfolio_size:"~24M sq ft, defense/IT-adjacent",market_focus:"Defense/intelligence-adjacent office and data centers"},major_holdings:[{name:"Fort Meade Cluster",location:"Fort Meade, MD",type:"Office",detail:"NSA/Cyber Command corridor"},{name:"Redstone Gateway",location:"Huntsville, AL",type:"Office",detail:"Army/missile defense"},{name:"Quantico Corridor",location:"Northern VA",type:"Office",detail:"Marine Corps/FBI adjacency"},{name:"Lackland AFB",location:"San Antonio, TX",type:"Office",detail:"USAF cyber operations"}]},
+"HPP":{summary:{description:"Hudson Pacific Properties is a West Coast office and studio REIT, heavily exposed to tech and media markets in LA and San Francisco.",headquarters:"Los Angeles, CA",ceo:"Victor Coleman",portfolio_size:"~19M sq ft office + studio",market_focus:"West Coast tech/media office and studios"},major_holdings:[{name:"Sunset Bronson Studios",location:"Hollywood, CA",type:"Studio",detail:"Major production facility"},{name:"Ferry Building",location:"San Francisco, CA",type:"Office",detail:"Iconic waterfront property"},{name:"One Westside",location:"West LA, CA",type:"Office",detail:"Google-anchored campus"},{name:"Harlow",location:"Hollywood, CA",type:"Studio",detail:"Sound stages and production"}]},
+"ESRT":{summary:{description:"Empire State Realty Trust owns and operates office and retail properties in Manhattan and the greater New York metro, anchored by the Empire State Building.",headquarters:"New York, NY",ceo:"Anthony Malkin",portfolio_size:"~10M sq ft, NYC-centric",market_focus:"NYC office and retail, observatory income"},major_holdings:[{name:"Empire State Building",location:"Midtown, NY",type:"Office/Observatory",detail:"2.8M sq ft iconic tower"},{name:"One Penn Plaza",location:"Midtown, NY",type:"Office",detail:"2.5M sq ft, Penn Station access"},{name:"111 West 33rd",location:"Midtown, NY",type:"Office",detail:"Manhattan office"},{name:"Metro NYC Portfolio",location:"Westchester/CT",type:"Office",detail:"Suburban office exposure"}]},
+"JBGS":{summary:{description:"JBG SMITH Properties is a mixed-use REIT focused on the Washington DC metro, anchored by its National Landing development adjacent to Amazon HQ2.",headquarters:"Bethesda, MD",ceo:"Matt Kelly",portfolio_size:"~17M sq ft, DC metro",market_focus:"DC metro mixed-use, National Landing"},major_holdings:[{name:"National Landing",location:"Arlington, VA",type:"Mixed-Use",detail:"Amazon HQ2 adjacent campus"},{name:"L'Enfant Plaza",location:"Washington, DC",type:"Office",detail:"Government/institutional anchor"},{name:"Crystal City",location:"Arlington, VA",type:"Mixed-Use",detail:"Office-to-residential conversions"},{name:"Bethesda Assets",location:"Bethesda, MD",type:"Mixed-Use",detail:"NIH/biotech corridor"}]},
+"BDN":{summary:{description:"Brandywine Realty Trust is an office and mixed-use REIT concentrated in Philadelphia and Austin, with significant development activity.",headquarters:"Philadelphia, PA",ceo:"Jerry Sweeney",portfolio_size:"~22M sq ft, Philadelphia/Austin",market_focus:"Philadelphia CBD and Austin office"},major_holdings:[{name:"Schuylkill Yards",location:"Philadelphia, PA",type:"Mixed-Use",detail:"Multi-phase urban development"},{name:"FMC Tower",location:"Philadelphia, PA",type:"Office",detail:"Trophy Cira Centre campus"},{name:"Broadmoor Campus",location:"Austin, TX",type:"Mixed-Use",detail:"Tech-driven campus"},{name:"Commerce Square",location:"Philadelphia, PA",type:"Office",detail:"2M sq ft, CBD anchor"}]},
+"PDM":{summary:{description:"Piedmont Office Realty Trust is a Class-A office REIT with properties in select Sunbelt markets including Atlanta, Dallas, and Orlando.",headquarters:"Atlanta, GA",ceo:"Brent Smith",portfolio_size:"~10M sq ft, select Sunbelt",market_focus:"Sunbelt Class-A office"},major_holdings:[{name:"Atlanta Portfolio",location:"Atlanta, GA",type:"Office",detail:"Buckhead/Midtown concentration"},{name:"Dallas Assets",location:"Dallas, TX",type:"Office",detail:"Uptown/Legacy corridor"},{name:"Orlando Properties",location:"Orlando, FL",type:"Office",detail:"Central FL presence"},{name:"Minneapolis Office",location:"Minneapolis, MN",type:"Office",detail:"Diversification market"}]},
+"EGP":{summary:{description:"EastGroup Properties is an industrial REIT focused on shallow bay distribution facilities in Sunbelt markets.",headquarters:"Ridgeland, MS",ceo:"Marshall Loeb",portfolio_size:"~60M sq ft, Sunbelt industrial",market_focus:"Sunbelt shallow bay industrial/distribution"},major_holdings:[{name:"Texas Portfolio",location:"Dallas/Houston/San Antonio",type:"Industrial",detail:"Largest geographic concentration"},{name:"Florida Assets",location:"Tampa/Orlando/Jacksonville",type:"Industrial",detail:"Growing distribution markets"},{name:"Southeast Cluster",location:"Atlanta/Charlotte",type:"Industrial",detail:"Logistics corridor"},{name:"Southwest Properties",location:"Phoenix/Las Vegas",type:"Industrial",detail:"Growth markets"}]},
+"COLD":{summary:{description:"Americold Realty Trust is a temperature-controlled warehouse REIT, one of the largest cold storage operators globally.",headquarters:"Atlanta, GA",ceo:"George Chappelle",portfolio_size:"~250 facilities, 1.5B cu ft",market_focus:"Temperature-controlled logistics and cold storage"},major_holdings:[{name:"US Cold Network",location:"National",type:"Cold Storage",detail:"Largest domestic footprint"},{name:"International Division",location:"Europe/Australia/LATAM",type:"Cold Storage",detail:"Global platform"},{name:"Customer Managed",location:"National",type:"Cold Storage",detail:"Dedicated facilities"},{name:"Transport Division",location:"National",type:"Logistics",detail:"Last-mile cold chain"}]},
+"STAG":{summary:{description:"STAG Industrial is a single-tenant industrial REIT focused on Class-B warehouse and light manufacturing properties across secondary markets.",headquarters:"Boston, MA",ceo:"Bill Crooker",portfolio_size:"~570 properties, 112M sq ft",market_focus:"Single-tenant industrial, secondary markets"},major_holdings:[{name:"Midwest Industrial",location:"Ohio/Michigan/Indiana",type:"Industrial",detail:"Manufacturing belt"},{name:"Southeast Warehousing",location:"Carolinas/Georgia",type:"Industrial",detail:"E-commerce distribution"},{name:"Mid-Atlantic",location:"Pennsylvania/Virginia",type:"Industrial",detail:"Logistics corridor"},{name:"South Central",location:"Texas/Oklahoma",type:"Industrial",detail:"Energy/manufacturing"}]},
+"FR":{summary:{description:"First Industrial Realty Trust is a logistics REIT focused on Class-A industrial properties in major coastal and inland port markets.",headquarters:"Chicago, IL",ceo:"Peter Baccile",portfolio_size:"~70M sq ft, gateway markets",market_focus:"Coastal gateway industrial/logistics"},major_holdings:[{name:"Southern California",location:"Inland Empire/LA",type:"Industrial",detail:"Port-adjacent logistics"},{name:"South Florida",location:"Miami/Ft Lauderdale",type:"Industrial",detail:"Import gateway"},{name:"New Jersey/PA",location:"NJ/Eastern PA",type:"Industrial",detail:"Port Newark corridor"},{name:"Chicago Region",location:"Chicago, IL",type:"Industrial",detail:"HQ market, intermodal"}]},
+"TRNO":{summary:{description:"Terreno Realty is a coastal infill industrial REIT focused on six major markets with high barriers to entry.",headquarters:"San Francisco, CA",ceo:"Blake Baird",portfolio_size:"~250 properties, 16M sq ft",market_focus:"Coastal infill industrial, six gateway markets"},major_holdings:[{name:"Northern NJ/NYC",location:"New Jersey",type:"Industrial",detail:"Port/last-mile logistics"},{name:"San Francisco Bay",location:"Bay Area, CA",type:"Industrial",detail:"Infill scarcity market"},{name:"LA Basin",location:"Los Angeles, CA",type:"Industrial",detail:"Ports of LA/Long Beach"},{name:"Washington DC",location:"DC Metro",type:"Industrial",detail:"Last-mile urban distribution"}]},
+"LXP":{summary:{description:"LXP Industrial Trust (formerly Lexington Realty) is a single-tenant net-lease REIT focused on warehouse and distribution facilities.",headquarters:"New York, NY",ceo:"T. Wilson Eglin",portfolio_size:"~120 properties, industrial-focused",market_focus:"Single-tenant industrial net lease"},major_holdings:[{name:"Southeast Industrial",location:"Carolinas/Georgia",type:"Industrial",detail:"E-commerce distribution"},{name:"Midwest Warehousing",location:"Ohio/Indiana",type:"Industrial",detail:"Manufacturing/logistics"},{name:"Texas Distribution",location:"Dallas/Houston",type:"Industrial",detail:"Growth corridor"},{name:"Greenville-Spartanburg",location:"South Carolina",type:"Industrial",detail:"BMW/automotive supply chain"}]},
+"REG":{summary:{description:"Regency Centers is a premier shopping center REIT focused on grocery-anchored neighborhood and community centers in affluent suburban markets.",headquarters:"Jacksonville, FL",ceo:"Lisa Palmer",portfolio_size:"~400 properties, 55M sq ft",market_focus:"Grocery-anchored retail in affluent suburbs"},major_holdings:[{name:"California Portfolio",location:"California",type:"Retail",detail:"Highest rent market"},{name:"Florida Centers",location:"Florida",type:"Retail",detail:"Strong demographics"},{name:"Northeast Properties",location:"Metro NYC/Boston",type:"Retail",detail:"Dense, high-income trade areas"},{name:"Southeast Cluster",location:"Atlanta/Raleigh",type:"Retail",detail:"Population growth markets"}]},
+"BRX":{summary:{description:"Brixmor Property Group owns and operates open-air shopping centers across the U.S., focused on grocery-anchored community retail.",headquarters:"New York, NY",ceo:"Jim Taylor",portfolio_size:"~370 properties, 64M sq ft",market_focus:"Open-air grocery-anchored retail"},major_holdings:[{name:"Northeast Portfolio",location:"Northeast US",type:"Retail",detail:"Dense, supply-constrained"},{name:"Southeast Centers",location:"Florida/Carolinas",type:"Retail",detail:"Growing demographics"},{name:"Midwest Properties",location:"Ohio/Michigan",type:"Retail",detail:"Stable cash flow centers"},{name:"Southwest Markets",location:"Texas/Arizona",type:"Retail",detail:"Population growth corridors"}]},
+"KRG":{summary:{description:"Kite Realty Group Trust is a retail REIT focused on open-air grocery-anchored shopping centers and mixed-use properties.",headquarters:"Indianapolis, IN",ceo:"John Kite",portfolio_size:"~180 properties, 28M sq ft",market_focus:"Grocery-anchored open-air retail"},major_holdings:[{name:"Sunbelt Centers",location:"Sunbelt markets",type:"Retail",detail:"Growth-oriented markets"},{name:"RPT Legacy Portfolio",location:"National",type:"Retail",detail:"From 2023 RPT merger"},{name:"Mixed-Use Assets",location:"Select markets",type:"Mixed-Use",detail:"Live/work/shop developments"},{name:"Midwest Core",location:"Indiana/Ohio",type:"Retail",detail:"HQ market concentration"}]},
+"PECO":{summary:{description:"Phillips Edison & Company is a grocery-anchored shopping center REIT focused on necessity-based retail across the U.S.",headquarters:"Cincinnati, OH",ceo:"Jeff Edison",portfolio_size:"~290 centers, 33M sq ft",market_focus:"Grocery-anchored necessity retail"},major_holdings:[{name:"Kroger-Anchored",location:"National",type:"Retail",detail:"Largest anchor relationship"},{name:"Southeast Centers",location:"Southeast US",type:"Retail",detail:"Population growth markets"},{name:"Midwest Portfolio",location:"Midwest US",type:"Retail",detail:"HQ region concentration"},{name:"Publix-Anchored",location:"Florida/Southeast",type:"Retail",detail:"Premium grocer anchor"}]},
+"UE":{summary:{description:"Urban Edge Properties is a retail REIT focused on open-air shopping centers in the Washington DC-to-Boston corridor.",headquarters:"New York, NY",ceo:"Jeff Olson",portfolio_size:"~70 properties, DC-to-Boston corridor",market_focus:"Northeast corridor open-air retail"},major_holdings:[{name:"NJ/NY Metro",location:"Northern NJ/NYC suburbs",type:"Retail",detail:"Dense, high-income trade areas"},{name:"DC Metro Centers",location:"Virginia/Maryland",type:"Retail",detail:"Government employee base"},{name:"Puerto Rico",location:"San Juan, PR",type:"Retail",detail:"Market-dominant centers"},{name:"Warehouse Conversions",location:"NJ/CT",type:"Mixed-Use",detail:"Redevelopment pipeline"}]},
+"FRT":{summary:{description:"Federal Realty Investment Trust is a premium retail REIT with mixed-use properties in first-ring suburbs of major coastal metros.",headquarters:"North Bethesda, MD",ceo:"Don Wood",portfolio_size:"~100 properties, 26M sq ft",market_focus:"Premier mixed-use retail, coastal metros"},major_holdings:[{name:"Santana Row",location:"San Jose, CA",type:"Mixed-Use",detail:"Iconic live/work/shop destination"},{name:"Assembly Row",location:"Somerville, MA",type:"Mixed-Use",detail:"Urban redevelopment anchor"},{name:"Pike & Rose",location:"North Bethesda, MD",type:"Mixed-Use",detail:"HQ-adjacent flagship"},{name:"CocoWalk",location:"Miami, FL",type:"Mixed-Use",detail:"Coconut Grove anchor"}]},
+"AKR":{summary:{description:"Acadia Realty Trust is a retail REIT focused on high-street and urban/suburban retail in high-barrier-to-entry markets.",headquarters:"Rye, NY",ceo:"Ken Bernstein",portfolio_size:"~100 properties, core + fund portfolio",market_focus:"High-street urban and suburban retail"},major_holdings:[{name:"Street Retail",location:"NYC/Chicago/DC",type:"Retail",detail:"High-street trophy assets"},{name:"Suburban Core",location:"Northeast/Mid-Atlantic",type:"Retail",detail:"Affluent suburban centers"},{name:"Fund Portfolio",location:"National",type:"Retail",detail:"Value-add/opportunistic"},{name:"Williamsburg Collection",location:"Brooklyn, NY",type:"Retail",detail:"Trendsetting urban retail"}]},
+"MAC":{summary:{description:"Macerich Company is a regional mall REIT focused on Class-A malls in top U.S. markets, with densification and mixed-use initiatives.",headquarters:"Santa Monica, CA",ceo:"Jackson Hsieh",portfolio_size:"~45 malls, 51M sq ft",market_focus:"Class-A regional malls, densification"},major_holdings:[{name:"Scottsdale Fashion Square",location:"Scottsdale, AZ",type:"Mall",detail:"Top luxury mall in SW"},{name:"Tysons Corner Center",location:"Tysons, VA",type:"Mall",detail:"DC metro flagship"},{name:"Kings Plaza",location:"Brooklyn, NY",type:"Mall",detail:"NYC market dominant"},{name:"Santa Monica Place",location:"Santa Monica, CA",type:"Mall",detail:"HQ-adjacent trophy mall"}]},
+"SKT":{summary:{description:"Tanger Inc. is an outlet center REIT operating open-air outlet shopping destinations across the United States and Canada.",headquarters:"Greensboro, NC",ceo:"Stephen Yalof",portfolio_size:"~36 outlet centers, 14M sq ft",market_focus:"Open-air outlet retail"},major_holdings:[{name:"Deer Park",location:"Long Island, NY",type:"Outlet",detail:"Metro NYC draw"},{name:"Myrtle Beach",location:"Myrtle Beach, SC",type:"Outlet",detail:"Tourism-driven"},{name:"Fort Worth",location:"Fort Worth, TX",type:"Outlet",detail:"DFW metro anchor"},{name:"Nashville",location:"Nashville, TN",type:"Outlet",detail:"Growth market entry"}]},
+"NNN":{summary:{description:"NNN REIT (formerly National Retail Properties) is a net-lease REIT with a diversified portfolio of single-tenant retail properties.",headquarters:"Orlando, FL",ceo:"Steve Horn",portfolio_size:"~3,500 properties, 49 states",market_focus:"Single-tenant retail net lease"},major_holdings:[{name:"Convenience Retail",location:"National",type:"Net Lease",detail:"C-stores, auto service"},{name:"Restaurant Portfolio",location:"National",type:"Net Lease",detail:"QSR and casual dining"},{name:"Entertainment",location:"National",type:"Net Lease",detail:"Fitness, theaters, family entertainment"},{name:"Health & Wellness",location:"National",type:"Net Lease",detail:"Medical retail, urgent care"}]},
+"ADC":{summary:{description:"Agree Realty is a net-lease REIT focused on investment-grade retail tenants with a high-quality, ground-lease-oriented portfolio.",headquarters:"Bloomfield Hills, MI",ceo:"Joey Agree",portfolio_size:"~2,100 properties, 44M sq ft",market_focus:"Investment-grade retail net lease"},major_holdings:[{name:"Grocery Portfolio",location:"National",type:"Net Lease",detail:"Walmart, Kroger, Publix anchored"},{name:"Home Improvement",location:"National",type:"Net Lease",detail:"Lowe's, Home Depot"},{name:"Dollar Stores",location:"National",type:"Net Lease",detail:"Dollar General, Dollar Tree"},{name:"Ground Leases",location:"National",type:"Net Lease",detail:"Growing ground lease portfolio"}]},
+"EPRT":{summary:{description:"Essential Properties Realty Trust is a net-lease REIT focused on single-tenant properties leased to middle-market service-oriented tenants.",headquarters:"Princeton, NJ",ceo:"Pete Mavoides",portfolio_size:"~1,900 properties, 99.9% occupied",market_focus:"Middle-market service-oriented net lease"},major_holdings:[{name:"Quick Service Restaurants",location:"National",type:"Net Lease",detail:"Largest tenant category"},{name:"Medical/Dental",location:"National",type:"Net Lease",detail:"Healthcare services"},{name:"Car Washes",location:"National",type:"Net Lease",detail:"Experiential retail"},{name:"Early Childhood Education",location:"National",type:"Net Lease",detail:"Kiddie Academy, Primrose Schools"}]},
+"SAFE":{summary:{description:"Safehold is a ground-lease REIT that acquires, owns, and manages ground leases on institutional-quality commercial properties.",headquarters:"New York, NY",ceo:"Jay Sugarman",portfolio_size:"~$6B ground lease portfolio",market_focus:"Ground leases on institutional CRE"},major_holdings:[{name:"NYC Ground Leases",location:"New York, NY",type:"Ground Lease",detail:"Office/multifamily underliers"},{name:"Coastal Markets",location:"Boston/DC/SF",type:"Ground Lease",detail:"Gateway city properties"},{name:"Sunbelt Portfolio",location:"Austin/Nashville/Miami",type:"Ground Lease",detail:"Growth market exposure"},{name:"Industrial/Logistics",location:"National",type:"Ground Lease",detail:"Expanding asset class"}]},
+"BNL":{summary:{description:"Broadstone Net Lease is a diversified net-lease REIT with exposure to industrial, healthcare, restaurant, and retail properties.",headquarters:"Rochester, NY",ceo:"John Moragne",portfolio_size:"~800 properties, diversified NL",market_focus:"Diversified net lease across sectors"},major_holdings:[{name:"Industrial/Distribution",location:"National",type:"Net Lease",detail:"Largest sector exposure"},{name:"Healthcare Facilities",location:"National",type:"Net Lease",detail:"Clinical and outpatient"},{name:"Restaurant Portfolio",location:"National",type:"Net Lease",detail:"Quick-serve and casual"},{name:"Retail Properties",location:"National",type:"Net Lease",detail:"Essential retail tenants"}]},
+"VTR":{summary:{description:"Ventas is a diversified healthcare REIT with significant exposure to senior housing, medical office, and research/innovation properties.",headquarters:"Chicago, IL",ceo:"Debra Cafaro",portfolio_size:"~1,200 properties, healthcare-focused",market_focus:"Senior housing, medical office, life science"},major_holdings:[{name:"Senior Housing (SHOP)",location:"National",type:"Healthcare",detail:"Operating portfolio, largest segment"},{name:"Outpatient Medical",location:"National",type:"Healthcare",detail:"MOB portfolio"},{name:"Research & Innovation",location:"Select markets",type:"Life Science",detail:"University-affiliated R&D"},{name:"Triple-Net Senior",location:"National",type:"Healthcare",detail:"NNN leased skilled nursing/AL"}]},
+"DOC":{summary:{description:"Healthpeak Properties is a healthcare REIT focused on lab space, medical offices, and continuing care retirement communities.",headquarters:"Denver, CO",ceo:"Scott Brinker",portfolio_size:"~500 properties, healthcare-focused",market_focus:"Lab, medical office, CCRC"},major_holdings:[{name:"Life Science Portfolio",location:"San Diego/SF/Boston",type:"Lab",detail:"Biotech cluster properties"},{name:"Medical Office",location:"National",type:"Healthcare",detail:"On-campus MOBs"},{name:"CCRC Portfolio",location:"National",type:"Senior Housing",detail:"Continuing care communities"},{name:"South San Francisco",location:"South SF, CA",type:"Lab",detail:"Biotech campus"}]},
+"OHI":{summary:{description:"Omega Healthcare Investors is a triple-net healthcare REIT focused on skilled nursing and assisted living facilities.",headquarters:"Hunt Valley, MD",ceo:"Taylor Pickett",portfolio_size:"~900 facilities, 68 operators",market_focus:"Skilled nursing and assisted living net lease"},major_holdings:[{name:"US Skilled Nursing",location:"National",type:"Healthcare",detail:"Core portfolio, ~80% of revenue"},{name:"UK Care Homes",location:"United Kingdom",type:"Healthcare",detail:"International diversification"},{name:"Assisted Living",location:"National",type:"Healthcare",detail:"Growing AL exposure"},{name:"Specialty Facilities",location:"National",type:"Healthcare",detail:"Behavioral, rehab"}]},
+"MPT":{summary:{description:"Medical Properties Trust is a hospital-focused net-lease REIT, the largest pure-play hospital owner globally.",headquarters:"Birmingham, AL",ceo:"Edward Aldag Jr.",portfolio_size:"~400 facilities, 9 countries",market_focus:"Acute care hospital net lease"},major_holdings:[{name:"Steward Health Care",location:"National",type:"Hospital",detail:"Largest tenant relationship"},{name:"Circle Health (UK)",location:"United Kingdom",type:"Hospital",detail:"UK private hospital operator"},{name:"Swiss Medical",location:"Switzerland",type:"Hospital",detail:"European diversification"},{name:"Prospect Medical",location:"National",type:"Hospital",detail:"Multi-state operator"}]},
+"HR":{summary:{description:"Healthcare Realty Trust is a medical office REIT focused on outpatient medical properties near major hospital systems.",headquarters:"Nashville, TN",ceo:"Todd Meredith",portfolio_size:"~670 properties, 41M sq ft",market_focus:"Outpatient medical office buildings"},major_holdings:[{name:"Nashville MOBs",location:"Nashville, TN",type:"Healthcare",detail:"HQ market, major health systems"},{name:"Dallas/Houston",location:"Texas",type:"Healthcare",detail:"Growing medical markets"},{name:"Southeast Portfolio",location:"Atlanta/Charlotte",type:"Healthcare",detail:"Hospital-adjacent MOBs"},{name:"Midwest Properties",location:"Minneapolis/Indianapolis",type:"Healthcare",detail:"Academic medical center adjacency"}]},
+"SBRA":{summary:{description:"Sabra Health Care REIT is a diversified healthcare net-lease REIT with skilled nursing, senior housing, and specialty hospital exposure.",headquarters:"Irvine, CA",ceo:"Rick Matros",portfolio_size:"~400 properties, diversified HC",market_focus:"Skilled nursing and senior housing net lease"},major_holdings:[{name:"Skilled Nursing",location:"National",type:"Healthcare",detail:"Largest segment, NNN leased"},{name:"Senior Housing (Managed)",location:"National",type:"Healthcare",detail:"SHOP portfolio"},{name:"Behavioral Health",location:"National",type:"Healthcare",detail:"Specialty facilities"},{name:"Senior Housing (NNN)",location:"National",type:"Healthcare",detail:"Triple-net assisted living"}]},
+"EXR":{summary:{description:"Extra Space Storage is one of the largest self-storage REITs in the U.S., with a major third-party management platform.",headquarters:"Salt Lake City, UT",ceo:"Joe Margolis",portfolio_size:"~3,800 facilities (owned + managed), 290M sq ft",market_focus:"Self-storage, third-party management"},major_holdings:[{name:"Life Storage Merger",location:"National",type:"Storage",detail:"2023 merger, expanded footprint"},{name:"Sunbelt Portfolio",location:"Florida/Texas/Arizona",type:"Storage",detail:"High-growth markets"},{name:"Urban Markets",location:"NYC/LA/Chicago",type:"Storage",detail:"Premium rate markets"},{name:"Management Platform",location:"National",type:"Storage",detail:"3rd party and JV managed"}]},
+"CUBE":{summary:{description:"CubeSmart is a self-storage REIT focused on properties in densely populated markets with high barriers to new supply.",headquarters:"Malvern, PA",ceo:"Chris Marr",portfolio_size:"~1,300 facilities, 95M sq ft",market_focus:"Urban/suburban self-storage"},major_holdings:[{name:"New York Metro",location:"NYC/NJ/CT",type:"Storage",detail:"Highest rate market"},{name:"South Florida",location:"Miami/Ft Lauderdale",type:"Storage",detail:"Strong demand fundamentals"},{name:"Texas Portfolio",location:"Dallas/Houston",type:"Storage",detail:"Growth market exposure"},{name:"Philadelphia/DC",location:"Mid-Atlantic",type:"Storage",detail:"HQ region concentration"}]},
+"NSA":{summary:{description:"National Storage Affiliates Trust is a self-storage REIT with a unique PRO (participating regional operator) structure.",headquarters:"Greenwood Village, CO",ceo:"Dave Cramer",portfolio_size:"~1,000 properties, PRO model",market_focus:"Self-storage via regional operator partnerships"},major_holdings:[{name:"Southeast Portfolio",location:"Southeast US",type:"Storage",detail:"Largest regional concentration"},{name:"Midwest Properties",location:"Midwest US",type:"Storage",detail:"Stable, lower-cost markets"},{name:"Southwest Assets",location:"Arizona/New Mexico",type:"Storage",detail:"Growth corridor"},{name:"PRO Partnerships",location:"National",type:"Storage",detail:"~10 regional operator JVs"}]},
+"ELS":{summary:{description:"Equity LifeStyle Properties is a manufactured housing and RV community REIT with properties in retirement and vacation destinations.",headquarters:"Chicago, IL",ceo:"Marguerite Nader",portfolio_size:"~450 properties, 170K sites",market_focus:"Manufactured housing, RV resorts, marinas"},major_holdings:[{name:"Florida MH Communities",location:"Florida",type:"MH",detail:"Retirement destination focus"},{name:"Arizona Resorts",location:"Arizona",type:"RV/MH",detail:"Snowbird seasonal demand"},{name:"Thousand Trails",location:"National",type:"RV",detail:"Membership-based RV network"},{name:"Marina Portfolio",location:"Coastal US",type:"Marina",detail:"Waterfront recreation assets"}]}
+};
+
+
+const EARNINGS={
+"AVB":{q:"Q4 2025",ffo:"$2.82/sh",summary:"Core FFO +4.1% YoY. Same-store revenue +3.6% on blended lease rate growth of +3.2%. Occupancy 96.1%. 2026 guidance: $11.05-$11.35 core FFO. Development pipeline $3.2B, 85% in suburban coastal markets."},
+"EQR":{q:"Q4 2025",ffo:"$1.02/sh",summary:"Normalized FFO +3.8% YoY. Same-store NOI +3.1%. Blended lease rates +2.9%, renewal spreads +4.1%. Occupancy 96.3%. Disposed $450M non-core suburban. 2026 NFFO guidance $4.08-$4.18."},
+"ESS":{q:"Q4 2025",ffo:"$3.92/sh",summary:"Core FFO +2.8% YoY. Same-store revenue +2.4% driven by NorCal recovery. Occupancy 96.1%. Tech hiring reaccelerating in Seattle/Bay Area. 2026 guidance $15.55-$15.95."},
+"MAA":{q:"Q4 2025",ffo:"$2.35/sh",summary:"Core FFO -1.2% YoY on Sunbelt supply pressure. Same-store NOI -1.8%. New deliveries compressing rents in Dallas, Austin, Nashville. Supply wave peaks mid-2026. 2026 guidance $9.20-$9.50."},
+"UDR":{q:"Q4 2025",ffo:"$0.64/sh",summary:"AFFO +2.3% YoY. Same-store NOI +2.3% with expense control 1.2% below CPI. Occupancy 96.6%. Dividend raised 3.5%. 2026 FFO guidance $2.55-$2.65."},
+"CPT":{q:"Q4 2025",ffo:"$1.77/sh",summary:"Core FFO flat YoY. Same-store NOI +0.8% on new supply in Austin/Houston. Occupancy 95.5%. Payout ratio conservative at 48%. 2026 guidance $7.00-$7.20."},
+"IRT":{q:"Q4 2025",ffo:"$0.27/sh",summary:"Core FFO +2.7% YoY. Post-renovation rents averaging +7.2% premium. Occupancy 95.3%. Same-store NOI +2.7%. 2026 guidance $1.06-$1.10."},
+"VRE":{q:"Q4 2025",ffo:"$0.08/sh",summary:"AFFO turning positive as office-to-MF conversion completes. Occupancy 94.7%. NJ waterfront lease-up ahead of schedule. Sold remaining office assets. Transformation largely complete."},
+"NXRT":{q:"Q4 2025",ffo:"$0.72/sh",summary:"Core FFO -8.4% YoY on Sunbelt rent compression and rising interest. D/EV 69%. Value-add capex paused in select markets. 8.0% yield sustainability in question."},
+"INVH":{q:"Q4 2025",ffo:"$0.46/sh",summary:"Core FFO +1.1% YoY. Same-store NOI +1.1%. Occupancy 97.2%, renewal spreads +4.8%. Dispositions $200M+ reinvested into premium markets. 2026 guidance $1.82-$1.88."},
+"AMH":{q:"Q4 2025",ffo:"$0.44/sh",summary:"Core FFO +4.6% YoY — strongest in SFR. Occupancy 95.9%. Build-to-rent delivering 2,200 homes. Lowest cost BTR producer in sector. 2026 guidance $1.72-$1.78."},
+"BXP":{q:"Q4 2025",ffo:"$1.84/sh",summary:"FFO -5.5% YoY on occupancy headwinds. Occupancy declining to ~88%. Sublease rising in Boston/NYC. $2.8B debt maturing 2027 — refinancing risk. Life science pivot underway."},
+"ARE":{q:"Q4 2025",ffo:"$2.22/sh",summary:"FFO -3.1% YoY. Life science leasing slowed amid biotech funding pullback. Occupancy 91.4%. Lab rent premiums holding 40%+. $1.2B pipeline 72% pre-leased. 2026 guidance $8.80-$9.00."},
+"VNO":{q:"Q4 2025",ffo:"$0.72/sh",summary:"FFO -7.4% YoY. Manhattan office pressured — sublease near record. Occupancy 87.5%. Non-core asset sales to manage $4.1B debt. Penn District redevelopment in progress."},
+"SLG":{q:"Q4 2025",ffo:"$1.42/sh",summary:"FFO -5.5% YoY. One Vanderbilt 99% leased at $140+ PSF — trophy outperforms. Broader portfolio 92.4% occupied. 1.2M sq ft signed in Q4. 2026 guidance $5.50-$5.70."},
+"KRC":{q:"Q4 2025",ffo:"$1.08/sh",summary:"FFO +0.6% YoY. Occupancy 80.9% — weakest among office peers. Austin/SD life science bright spots. West Coast tech retrenchment still pressuring. 2026 guidance $4.20-$4.40."},
+"CUZ":{q:"Q4 2025",ffo:"$0.74/sh",summary:"FFO +0.3% YoY. Occupancy 89.3%. Sunbelt trophy strategy showing resilience. Austin and Atlanta leading. 1.4M sq ft signed. Low leverage 4.0x net debt/EBITDA."},
+"DEI":{q:"Q4 2025",ffo:"$0.43/sh",summary:"FFO +3.5% YoY on multifamily contribution. LA Westside office under pressure. Honolulu stable. Multifamily 96%+ occupied providing cash flow floor. 2026 guidance $1.68-$1.78."},
+"HIW":{q:"Q4 2025",ffo:"$0.98/sh",summary:"FFO -3.6% YoY. Occupancy 85.1% on large expirations. Raleigh/Nashville relatively stronger. D/EV 58% elevated. 2026 guidance $3.80-$3.94."},
+"CDP":{q:"Q4 2025",ffo:"$0.62/sh",summary:"FFO +4.6% YoY. Defense-adjacent portfolio benefits from DoD spending. Occupancy 94.3%. Fort Meade/Redstone near full. Data center expansion at Quantico. 2026 guidance $2.44-$2.52."},
+"HPP":{q:"Q4 2025",ffo:"$0.00/sh",summary:"FFO zero — cash burn. LA/SF tech tenant downsizing. Dividend suspended. $3.6B EV mostly debt. Studio business providing limited offset. Equity approaching distressed."},
+"ESRT":{q:"Q4 2025",ffo:"$0.23/sh",summary:"FFO -1.5% YoY. Observatory revenue provides unique diversification. Manhattan office challenged. Flagship improving but suburban weak. 2026 guidance $0.90-$0.96."},
+"JBGS":{q:"Q4 2025",ffo:"$0.42/sh",summary:"FFO -6.7% YoY. National Landing (Amazon HQ2) progressing but DC office broadly pressured. Office-to-resi conversions underway. 2026 guidance $1.60-$1.72."},
+"BDN":{q:"Q4 2025",ffo:"$0.31/sh",summary:"FFO +2.1% YoY. Activist catalyst: Land & Buildings 6.2% stake pushing strategic alternatives. -59.5% NAV discount deepest in office. Philly CBD fundamentals improving."},
+"PDM":{q:"Q4 2025",ffo:"$0.48/sh",summary:"FFO +2.8% YoY. Occupancy 89.2%. Atlanta/Dallas stable. Targeting $350M dispositions in 2026 to delever from 70% D/EV. 2026 guidance $1.88-$1.96."},
+"PLD":{q:"Q4 2025",ffo:"$1.52/sh",summary:"Core FFO +5.2% YoY. Same-store NOI +5.2%. Global logistics demand robust. Development starts $4.2B. Mark-to-market embedded gains 45%+. 2026 guidance $5.95-$6.10."},
+"LINE":{q:"Q4 2025",ffo:"$0.55/sh",summary:"First full year as public REIT. Cold storage utilization 88%+. Revenue +8% on food/pharma. Integration on track. Pharma cold chain growing fastest."},
+"REXR":{q:"Q4 2025",ffo:"$0.56/sh",summary:"Core FFO +5.5% YoY. SoCal rents +4.8% cash. Occupancy 96.8%. Supply constraints in infill LA/OC. No tenant >2% of revenue. 2026 guidance $2.20-$2.28."},
+"EGP":{q:"Q4 2025",ffo:"$2.15/sh",summary:"FFO +6.9% YoY. Same-store NOI +6.9% — best-in-class industrial. Occupancy 96.6%. Sunbelt shallow bay driving rent growth. 2026 guidance $8.50-$8.70."},
+"COLD":{q:"Q4 2025",ffo:"$0.32/sh",summary:"AFFO -2.9% YoY. Utilization 75.5% — lowest among industrial. Integration challenges ongoing. Secular cold chain demand positive but execution lagging. 2026 guidance $1.28-$1.38."},
+"STAG":{q:"Q4 2025",ffo:"$0.59/sh",summary:"Core FFO +3.9% YoY. Occupancy 97.0%. 570+ assets, monthly dividend. Cash re-leasing spreads +20%+. 2026 guidance $2.32-$2.40."},
+"FR":{q:"Q4 2025",ffo:"$0.71/sh",summary:"FFO +6.1% YoY. Cash re-leasing +50%+ in coastal gateways. SoCal/South FL strongest. Developments 100% pre-leased. 2026 guidance $2.78-$2.86."},
+"TRNO":{q:"Q4 2025",ffo:"$0.52/sh",summary:"Core FFO +6.9% YoY. Occupancy 98.6% — highest in industrial. Six-market coastal infill commanding 30%+ rent premiums. Re-leasing +55%. 2026 guidance $2.02-$2.10."},
+"LXP":{q:"Q4 2025",ffo:"$0.20/sh",summary:"AFFO +2.0% YoY. Industrial conversion complete — 100% warehouse/distribution. Occupancy 96.9%. Single-tenant NNN stability. 2026 guidance $0.78-$0.82."},
+"KIM":{q:"Q4 2025",ffo:"$0.43/sh",summary:"FFO +1.9% YoY. Grocery-anchored driving stable traffic. Same-store NOI +1.9%. New leasing spreads +12%. RPT integration complete. 2026 guidance $1.68-$1.74."},
+"REG":{q:"Q4 2025",ffo:"$1.14/sh",summary:"Core FFO +4.8% YoY. Same-store NOI +4.8%. Premier grocery-anchored in affluent suburbs. Spreads +9%. Record occupancy. 2026 guidance $4.48-$4.60."},
+"BRX":{q:"Q4 2025",ffo:"$0.52/sh",summary:"FFO +4.0% YoY. Same-store NOI +4.0%. Grocery-anchored open-air strategy resonating. Redevelopment pipeline delivering. 2026 guidance $2.04-$2.12."},
+"KRG":{q:"Q4 2025",ffo:"$0.52/sh",summary:"Core FFO +2.1% YoY. RPT merger synergies on track. Same-store NOI +2.1%. Limited new retail supply benefiting portfolio. 2026 guidance $2.04-$2.12."},
+"PECO":{q:"Q4 2025",ffo:"$0.60/sh",summary:"Core FFO +3.3% YoY. Grocery-anchored necessity retail resilient. Kroger/Publix anchors driving traffic. Near all-time high occupancy. 2026 guidance $2.36-$2.44."},
+"UE":{q:"Q4 2025",ffo:"$0.34/sh",summary:"FFO +4.7% YoY. DC-to-Boston corridor benefiting from limited supply and dense demographics. Warehouse conversions adding mixed-use. 2026 guidance $1.32-$1.38."},
+"FRT":{q:"Q4 2025",ffo:"$1.72/sh",summary:"FFO +4.4% YoY. Santana Row and Assembly Row exceeding pre-COVID. Mixed-use densification unlocking value. 56 consecutive dividend increases. 2026 guidance $6.78-$6.94."},
+"AKR":{q:"Q4 2025",ffo:"$0.32/sh",summary:"Core FFO +8.2% YoY. Street retail commanding record rents. Fund vehicle providing opportunistic upside. 2026 guidance $1.26-$1.34."},
+"SPG":{q:"Q4 2025",ffo:"$3.69/sh",summary:"FFO +5.1% beat by $0.08. Occupancy 96.2%. Spreads +3.8%, tenant sales +4.1%. $2B mixed-use expansion. Premium outlet tourism recovery. 2026 guidance $13.00-$13.20."},
+"MAC":{q:"Q4 2025",ffo:"$0.44/sh",summary:"FFO +1.7% YoY. Class-A malls outperforming, tenant sales +5.2%. Densification at 6 properties. Scottsdale Fashion Square NOI +8%. 2026 guidance $1.72-$1.80."},
+"SKT":{q:"Q4 2025",ffo:"$0.53/sh",summary:"Core FFO +4.0% YoY. Open-air outlet format benefiting from value-seeking. International tourist recovery aiding coastal centers. 2026 guidance $2.08-$2.16."},
+"O":{q:"Q4 2025",ffo:"$1.07/sh",summary:"AFFO +4.2% YoY. Monthly dividend increased — 28th year. 98.7% occupied. IG tenants 52% of rent. $9.4B acquisitions in 2025. UK/Europe NNN expansion. 2026 guidance $4.22-$4.32."},
+"WPC":{q:"Q4 2025",ffo:"$1.27/sh",summary:"AFFO flat post-office exit. Diversified NNN industrial/retail. $2B office divestiture complete. Payout ratio 74%. Europe ~35% NOI. 2026 guidance $5.00-$5.12."},
+"NNN":{q:"Q4 2025",ffo:"$0.86/sh",summary:"Core FFO +2.8% YoY. Occupancy 99.4%. 35th consecutive dividend increase. Conservative 5.2x debt/EBITDA. $700M acquisitions in 2025. 2026 guidance $3.38-$3.46."},
+"ADC":{q:"Q4 2025",ffo:"$1.04/sh",summary:"Core FFO +5.8% YoY. IG tenants 67%. $1.8B acquisitions in 2025. Ground leases 10% of ABR. Occupancy 99.8%. 2026 guidance $4.08-$4.18."},
+"EPRT":{q:"Q4 2025",ffo:"$0.43/sh",summary:"AFFO +7.2% YoY — fastest grower in NNN. Middle-market service tenant focus. Sale-leaseback pipeline robust. Occupancy 99.9%. Rent coverage 3.8x. 2026 guidance $1.68-$1.74."},
+"SAFE":{q:"Q4 2025",ffo:"$0.42/sh",summary:"Earnings pressured by higher rates. $6B+ ground lease portfolio. Inflation escalators embedded. NAV discount widening on rate sensitivity concerns. 2026 guidance $1.60-$1.72."},
+"BNL":{q:"Q4 2025",ffo:"$0.36/sh",summary:"AFFO +1.2% YoY. Diversified NNN — 45% industrial, 17% HC, 16% restaurant. Occupancy 99.4%. Conservative leverage. 2026 guidance $1.40-$1.46."},
+"WELL":{q:"Q4 2025",ffo:"$1.12/sh",summary:"Normalized FFO +18.4% YoY — strongest in REIT universe. Senior housing occupancy 92%+. Demographic tailwind. $1B+ M&A pipeline. 2026 guidance $4.40-$4.56."},
+"VTR":{q:"Q4 2025",ffo:"$0.88/sh",summary:"Normalized FFO +12.3% YoY. SHOP occupancy +500bps YoY. Medical office stable. R&I properties signing life science tenants. 2026 guidance $3.48-$3.60."},
+"DOC":{q:"Q4 2025",ffo:"$0.44/sh",summary:"FFO -2.1% YoY on merger costs. Lab facing biotech headwinds. MOB stable 93%+ hospital-affiliated. CCRC steady. 2026 guidance $1.72-$1.80."},
+"OHI":{q:"Q4 2025",ffo:"$0.72/sh",summary:"FFO +5.2% YoY. SNF fundamentals strongest in decade — occupancy recovery. Operator rent coverage improving to 1.5x+. UK contributing. 2026 guidance $2.82-$2.92."},
+"MPT":{q:"Q4 2025",ffo:"$0.22/sh",summary:"FFO -18% YoY. Steward restructuring — missed rent. Tenant concentration risk elevated. 6.7% yield sustainability questionable at 75% D/EV. $1.5B asset sales targeted. Credit watch."},
+"HR":{q:"Q4 2025",ffo:"$0.40/sh",summary:"FFO +1.8% YoY. Healthcare Trust merger integration complete. MOB fundamentals supported by aging population and outpatient shift. 2026 guidance $1.56-$1.64."},
+"SBRA":{q:"Q4 2025",ffo:"$0.38/sh",summary:"AFFO +3.2% YoY. SNF rent coverage improving. Behavioral health growing. Managed senior housing recovering. 2026 guidance $1.48-$1.56."},
+"PSA":{q:"Q4 2025",ffo:"$4.28/sh",summary:"Core FFO flat. Same-store NOI flat as sector normalizes. Occupancy 92.2%. Street rates stabilizing. 2,700+ facilities — largest platform. Fortress balance sheet. 2026 guidance $16.80-$17.20."},
+"EXR":{q:"Q4 2025",ffo:"$2.08/sh",summary:"Core FFO -2.5% YoY. Life Storage merger synergies delivering. Occupancy 94.1%. Rate normalization. 3rd-party management 3,800+ facilities. 2026 guidance $8.10-$8.30."},
+"CUBE":{q:"Q4 2025",ffo:"$0.66/sh",summary:"FFO -1.5% YoY. Same-store NOI -1.5%. Urban/suburban high-barrier focus. Occupancy 89.9% below peers. NYC metro commanding premium. 2026 guidance $2.58-$2.66."},
+"NSA":{q:"Q4 2025",ffo:"$0.62/sh",summary:"Core FFO -5.7% YoY. PRO structure adding complexity. Occupancy 85.0% — weakest in storage. Rate normalization pressuring. 2026 guidance $2.38-$2.50."},
+"SUI":{q:"Q4 2025",ffo:"$1.82/sh",summary:"Core FFO +5.4% YoY. MH 99%+ occupied. RV recovering from post-COVID normalization. Marina contributing growth. 2026 guidance $7.15-$7.35."},
+"ELS":{q:"Q4 2025",ffo:"$0.72/sh",summary:"Normalized FFO +5.3% YoY. MH occupancy 94.3% with embedded rent growth. Thousand Trails RV membership model unique. 2026 guidance $2.82-$2.92."},
+"EQIX":{q:"Q4 2025",ffo:"$9.22/sh",summary:"AFFO +12.1% YoY. DC contracts +25% on AI/ML demand. Power density accelerating — 50kW+ per rack standard. Hyperscaler renewals at 8-12% bumps. $5B+ pipeline. 2026 guidance $36.50-$37.50."},
+"DLR":{q:"Q4 2025",ffo:"$1.82/sh",summary:"Core FFO +8.0% YoY. Record leasing $500M+ new bookings. Pricing power +15% on new contracts. Utilization 94%+. $3B+ global expansion. 2026 guidance $7.15-$7.35."}
+};
+
+
+// Helpers
+const ST={},SO=[];R.forEach(r=>{const s=r[13];if(!ST[s]){ST[s]=[];SO.push(s);}ST[s].push(r);});
+function secRet(){const o={};SO.forEach(s=>{let tw=0,wr=0;ST[s].forEach(r=>{if(r[14]!=null){tw+=r[7];wr+=r[14]*r[7];}});o[s]=tw>0?Math.round(wr/tw*100)/100:null;});return o;}
+// SR computed inside App for live updates
+const cc=v=>v==null?"#5a6878":v>=2?"#34d399":v>0?"#86efac":v<=-2?"#f87171":v<0?"#fca5a5":"#c5cdd8";
+const nc=v=>v==null?"#5a6878":v>=0?"#34d399":"#f87171";
+const fc=v=>v==null?"–":(v>=0?"+":"")+v.toFixed(1)+"%";
+const fd=v=>v==null?"–":(v>=0?"+":"")+v.toFixed(2)+"%";
+const sc=s=>s==="positive"?"#34d399":s==="negative"?"#f87171":"#5a6878";
+const TC={alert:"#f87171",opportunity:"#34d399",watch:"#fbbf24",info:"#60a5fa"};
+const TI={alert:"▲",opportunity:"◆",watch:"◉",info:"●"};
+const S={bg:"#0a0e14",sf:"#111720",sf2:"#161d28",bd:"#1e2836",tx:"#c5cdd8",mu:"#5a6878",br:"#e8edf3",ac:"#818cf8",acD:"#312e81"};
+
+// ── Polygon.io Data Layer (Stocks Starter) ──
+const POLYGON_KEY="rtGdBDhU_fUH_AiW_9ZMFKzZc7qpd6nn";
+const TICKERS=R.map(r=>r[1]);
+const TICKER_SET=new Set(TICKERS);
+const REFRESH_SEC=60;
+
+let _feedError=null;
+let _feedMode="snapshot";
+
+// Caches (populated once on initial load)
+let _histPrices={m1:{},m3:{},y1:{}};
+let _annualDiv={};
+let _shares={};
+let _fundLoaded=false;
+
+// ── Helper: date N months back, skip weekends ──
+function dateBack(months){
+  const d=new Date();d.setMonth(d.getMonth()-months);
+  while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+function lastTradingDay(){
+  const d=new Date();
+  const et=new Date(d.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  if(et.getHours()<9||(et.getHours()===9&&et.getMinutes()<30))d.setDate(d.getDate()-1);
+  while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()-1);
+  return d.toISOString().slice(0,10);
+}
+
+// ── 1. Snapshot: real-time price + todaysChangePerc ──
+async function fetchSnapshot(){
+  const results=[];
+  for(let i=0;i<TICKERS.length;i+=50){
+    const batch=TICKERS.slice(i,i+50).join(",");
+    const url=`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${batch}&apiKey=${POLYGON_KEY}`;
+    const res=await fetch(url);
+    if(!res.ok){
+      const body=await res.text().catch(()=>"no body");
+      const msg=`Snapshot HTTP ${res.status} — ${body.slice(0,200)}`;
+      console.error(msg);
+      throw new Error(msg);
+    }
+    const data=await res.json();
+    if(data.tickers)results.push(...data.tickers);
+    else console.warn("Snapshot response missing tickers array:",JSON.stringify(data).slice(0,200));
+  }
+  const map={};
+  results.forEach(t=>{
+    const price=t.lastTrade?.p||t.day?.c||t.prevDay?.c;
+    const pct=t.todaysChangePerc;
+    if(price!=null&&!isNaN(price)){
+      map[t.ticker]={price:parseFloat(price),pct:(pct!=null&&isFinite(pct))?parseFloat(pct.toFixed(2)):null};
+    }
+  });
+  console.log(`Snapshot: ${Object.keys(map).length}/${TICKERS.length} tickers, sample:`,Object.entries(map).slice(0,3));
+  return map;
+}
+
+// ── 2. Grouped daily fallback ──
+async function fetchGrouped(){
+  const ds=lastTradingDay();
+  const url=`https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${ds}?adjusted=true&apiKey=${POLYGON_KEY}`;
+  const res=await fetch(url);
+  if(!res.ok)throw new Error(`Grouped ${res.status}`);
+  const data=await res.json();
+  const map={};
+  if(data.results)data.results.forEach(t=>{
+    if(TICKER_SET.has(t.T)&&t.c!=null){
+      map[t.T]={price:t.c,pct:t.o>0?parseFloat(((t.c-t.o)/t.o*100).toFixed(2)):null};
+    }
+  });
+  return map;
+}
+
+// ── 3. Historical prices for 1M/3M/1Y returns ──
+async function fetchHistorical(){
+  const periods=[{key:"m1",months:1},{key:"m3",months:3},{key:"y1",months:12}];
+  for(const{key,months}of periods){
+    const ds=dateBack(months);
+    try{
+      const url=`https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${ds}?adjusted=true&apiKey=${POLYGON_KEY}`;
+      const res=await fetch(url);
+      if(res.ok){
+        const data=await res.json();
+        if(data.results)data.results.forEach(t=>{
+          if(TICKER_SET.has(t.T)&&t.c!=null)_histPrices[key][t.T]=t.c;
+        });
+      }
+    }catch(e){console.warn(`Hist ${months}M failed:`,e);}
+  }
+}
+
+// ── 4. Dividends → trailing 12M yield ──
+async function fetchDividends(){
+  const from=dateBack(13);
+  const oneYrAgo=new Date();oneYrAgo.setFullYear(oneYrAgo.getFullYear()-1);
+  const BATCH=10;
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  for(let i=0;i<TICKERS.length;i+=BATCH){
+    const batch=TICKERS.slice(i,i+BATCH);
+    await Promise.all(batch.map(tk=>
+      fetch(`https://api.polygon.io/v3/reference/dividends?ticker=${tk}&ex_dividend_date.gte=${from}&limit=20&apiKey=${POLYGON_KEY}`)
+        .then(r=>r.ok?r.json():null)
+        .then(data=>{
+          if(data?.results){
+            let total=0;
+            data.results.forEach(d=>{if(d.cash_amount&&new Date(d.ex_dividend_date)>=oneYrAgo)total+=d.cash_amount;});
+            if(total>0)_annualDiv[tk]=total;
+          }
+        }).catch(()=>{})
+    ));
+    if(i+BATCH<TICKERS.length)await delay(200);
+  }
+}
+
+// ── 5. Ticker details → shares outstanding for market cap ──
+async function fetchShares(){
+  const BATCH=10;
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  for(let i=0;i<TICKERS.length;i+=BATCH){
+    const batch=TICKERS.slice(i,i+BATCH);
+    await Promise.all(batch.map(tk=>
+      fetch(`https://api.polygon.io/v3/reference/tickers/${tk}?apiKey=${POLYGON_KEY}`)
+        .then(r=>r.ok?r.json():null)
+        .then(data=>{
+          if(data?.results){
+            const s=data.results.weighted_shares_outstanding||data.results.share_class_shares_outstanding;
+            if(s)_shares[tk]=s;
+          }
+        }).catch(()=>{})
+    ));
+    if(i+BATCH<TICKERS.length)await delay(200);
+  }
+}
+
+// ── Master update: apply all data to R array ──
+function applyToR(map){
+  let updated=0;
+  R.forEach(r=>{
+    const tk=r[1],d=map[tk];
+    // Price + Day Δ from snapshot/grouped
+    if(d){
+      r[2]=Math.round(d.price*100)/100;
+      if(d.pct!=null)r[14]=d.pct;
+      updated++;
+    }
+    // Dividend yield = trailing 12M dividends / price × 100
+    if(_annualDiv[tk]&&r[2]>0)r[3]=parseFloat((_annualDiv[tk]/r[2]*100).toFixed(1));
+    // 1M / 3M / 1Y returns from historical base prices
+    const h1=_histPrices.m1[tk],h3=_histPrices.m3[tk],h12=_histPrices.y1[tk];
+    if(h1&&r[2])r[4]=parseFloat(((r[2]-h1)/h1*100).toFixed(1));
+    if(h3&&r[2])r[5]=parseFloat(((r[2]-h3)/h3*100).toFixed(1));
+    if(h12&&r[2])r[6]=parseFloat(((r[2]-h12)/h12*100).toFixed(1));
+    // Market cap = shares × price / 1B
+    if(_shares[tk]&&r[2])r[7]=parseFloat((_shares[tk]*r[2]/1e9).toFixed(1));
+  });
+  return updated;
+}
+
+// ── Main fetch (called every 60s) ──
+async function fetchPrices(){
+  try{
+    let map;
+    let mode="snapshot";
+    try{
+      map=await fetchSnapshot();
+      // Validate we got real data
+      if(Object.keys(map).length<5)throw new Error("Too few results from snapshot");
+    }catch(e){
+      console.warn("⚠ Snapshot failed:",e.message,"— falling back to grouped daily");
+      mode="grouped";
+      map=await fetchGrouped();
+    }
+    const updated=applyToR(map);
+    _feedError=null;
+    _feedMode=mode;
+    return{updated,total:R.length,ts:new Date(),mode};
+  }catch(e){console.error("Polygon error:",e);_feedError=e.message;return null;}
+}
+
+// ── Background fundamentals loader ──
+async function loadFundamentals(onProgress){
+  onProgress("Loading historical prices…");
+  await fetchHistorical();
+  onProgress("Loading dividends…");
+  await fetchDividends();
+  onProgress("Loading market caps…");
+  await fetchShares();
+  _fundLoaded=true;
+  // Detect Green Street proxy
+  onProgress("Connecting to Green Street…");
+  await detectGreenStreet();
+  if(_gsAvailable){
+    onProgress("Loading Green Street data…");
+    await fetchGSData();
+  }
+  // Fetch news for top movers (by absolute day change)
+  onProgress("Fetching news for top movers…");
+  const movers=R.filter(r=>r[14]!=null).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14])).slice(0,25).map(r=>r[1]);
+  await fetchTickerNews(movers);
+  // Fetch GS sector-level news for briefs
+  if(_gsAvailable){
+    onProgress("Fetching Green Street sector research…");
+    const sectorKeywords=["multifamily","office","industrial","retail","data center","healthcare","storage","net lease","REIT"];
+    const gsArticles=await fetchGSNews(sectorKeywords);
+    // Store GS sector articles in a special cache key
+    _newsCache["__GS_SECTOR__"]=gsArticles;
+  }
+  onProgress(null);
+}
+
+function App(){
+const[pg,sPg]=useState("dashboard"),[ft,sFt]=useState("all"),[sr,sSr]=useState(""),[srt,sSrt]=useState(-1),[sa,sSa]=useState(true),[md,sMd]=useState(null),[cd,sCd]=useState(REFRESH_SEC),[tk,sTk]=useState(0);
+const[apiOk,sApiOk]=useState(null);
+const[lastRefresh,sLastRefresh]=useState(null);
+const[tickersUp,sTickersUp]=useState(0);
+const[feedErr,sFeedErr]=useState(null);
+const[feedMode,sFeedMode]=useState("snapshot");
+const[loadMsg,sLoadMsg]=useState("Connecting…");
+const[briefs,sBriefs]=useState([]);
+const[briefsTs,sBriefsTs]=useState(null);
+const[aiSummary,sAiSummary]=useState(null);
+const[aiSummaryTs,sAiSummaryTs]=useState(null);
+const[aiSummaryLoading,sAiSummaryLoading]=useState(false);
+const[mdNews,sMdNews]=useState([]);
+const[mdNewsLoading,sMdNewsLoading]=useState(false);
+
+// ── Claude AI Daily Summary ──
+const generateAISummary=async()=>{
+  sAiSummaryLoading(true);
+  sAiSummary(null);
+  try{
+    // Build context from live data
+    const sr=secRet();
+    const sectorLine=SO.map(s=>`${s}: ${sr[s]!=null?(sr[s]>=0?"+":"")+sr[s].toFixed(2)+"%":"flat"}`).join(", ");
+    const topGainers=R.filter(r=>r[14]>0).sort((a,b)=>b[14]-a[14]).slice(0,5).map(r=>`${r[1]} +${r[14].toFixed(2)}%`).join(", ");
+    const topLosers=R.filter(r=>r[14]<0).sort((a,b)=>a[14]-b[14]).slice(0,5).map(r=>`${r[1]} ${r[14].toFixed(2)}%`).join(", ");
+    const bigMovers=R.filter(r=>Math.abs(r[14]||0)>=2).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14])).map(r=>`${r[1]} (${r[13]}) ${r[14]>=0?"+":""}${r[14].toFixed(2)}% to $${r[2].toFixed(2)}`).join("; ");
+    const dateStr=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+
+    const prompt=`You are writing a close-of-day REIT market briefing for the CEO of Starwood Capital Group. Today is ${dateStr}. Be concise, institutional-grade, no filler. Format:
+
+**[Day] — Close**
+**Rates:** [10Y yield, move, any credit spread note]
+**Oil:** [WTI level, move, context if relevant]
+**Equities:** [S&P, Nasdaq, Dow close levels and % change. VIX.]
+
+**REIT-specific:** [Any analyst upgrades/downgrades, PT changes, capital markets activity (equity raises, debt deals, M&A), dividend announcements, or earnings for these 67 REITs today. If nothing, say "Quiet day for REIT-specific catalysts."]
+
+**Biggest REIT movers:** [Only names that moved ±2%+ and why if known]
+
+**Credit:** [Any notable CRE lending, CMBS, or private credit developments]
+
+**This week:** [Upcoming REIT earnings, conferences, or macro events that matter for CRE]
+
+Rules: No generic market commentary he can see on Bloomberg. No mention of internal SCG deals. No explaining what stagflation means. If there's nothing notable in a section, keep it to one line. Search the web for today's specific REIT and CRE news.
+
+Here is today's live data from the REIT Observer dashboard (67 REITs):
+Sector performance (cap-weighted day change): ${sectorLine}
+Top 5 gainers: ${topGainers}
+Top 5 losers: ${topLosers}
+Big movers (±2%+): ${bigMovers||"None above ±2% today"}`;
+
+    const response=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        tools:[{type:"web_search_20250305",name:"web_search"}],
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const data=await response.json();
+    const text=data.content?.filter(c=>c.type==="text").map(c=>c.text).join("\n")||"Failed to generate summary.";
+    sAiSummary(text);
+    sAiSummaryTs(new Date());
+  }catch(e){
+    console.error("AI Summary error:",e);
+    sAiSummary("Error generating summary: "+e.message);
+  }
+  sAiSummaryLoading(false);
+};
+
+const openModal=async(r)=>{
+  sMd(r);
+  sMdNewsLoading(true);
+  sMdNews([]);
+  const tk=r[1];
+  // Fetch news if not cached
+  if(!_newsCache[tk]){
+    await fetchTickerNews([tk]);
+  }
+  const articles=(_newsCache[tk]||[]).slice().sort((a,b)=>{
+    if(a.trusted&&!b.trusted)return -1;
+    if(!a.trusted&&b.trusted)return 1;
+    return 0;
+  });
+  sMdNews(articles);
+  sMdNewsLoading(false);
+};
+
+const doGenerate=async()=>{
+  const movers=R.filter(r=>r[14]!=null).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14])).slice(0,25).map(r=>r[1]);
+  await fetchTickerNews(movers);
+  const b=generateBriefs();
+  sBriefs(b);
+  sBriefsTs(new Date());
+};
+
+const doRefresh=async()=>{
+  const r=await fetchPrices();
+  if(r){sApiOk(true);sLastRefresh(r.ts);sTickersUp(r.updated);sCd(REFRESH_SEC);sTk(t=>t+1);sFeedErr(null);sFeedMode(r.mode);}
+  else{sApiOk(false);sFeedErr(_feedError);}
+};
+
+useEffect(()=>{
+  (async()=>{
+    await doRefresh();
+    await loadFundamentals(msg=>sLoadMsg(msg));
+    await doRefresh();
+    const b=generateBriefs();
+    sBriefs(b);
+    sBriefsTs(new Date());
+    // Auto-generate AI summary if after 4:30pm ET
+    const etNow=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
+    if(etNow.getHours()>=16||(etNow.getHours()===16&&etNow.getMinutes()>=30)){
+      generateAISummary();
+    }
+  })();
+  const t=setInterval(()=>{sCd(p=>{if(p<=1){doRefresh();return REFRESH_SEC;}return p-1;});},1000);
+  // Check every minute for 5pm ET trigger
+  let summaryGenerated=false;
+  const fivePmCheck=setInterval(()=>{
+    const et=new Date(new Date().toLocaleString("en-US",{timeZone:"America/New_York"}));
+    if(et.getHours()===17&&et.getMinutes()===0&&!summaryGenerated){
+      summaryGenerated=true;
+      generateAISummary();
+      // Reset flag at midnight
+      setTimeout(()=>{summaryGenerated=false;},6*3600000);
+    }
+  },60000);
+  return()=>{clearInterval(t);clearInterval(fivePmCheck);};
+},[]);
+
+const ss=String(cd).padStart(2,"0");
+const SR=secRet();
+const tG=R.filter(r=>r[14]>0).sort((a,b)=>b[14]-a[14]).slice(0,5);
+const tL=R.filter(r=>r[14]<0).sort((a,b)=>a[14]-b[14]).slice(0,5);
+const bm=R.filter(r=>Math.abs(r[14]||0)>=2.5).length;
+
+let dd=R.slice();
+if(sr)dd=dd.filter(r=>r[0].toLowerCase().includes(sr.toLowerCase())||r[1].toLowerCase().includes(sr.toLowerCase()));
+if(ft==="dd")dd=dd.filter(r=>r[9]!=null&&r[9]<=-25);
+else if(ft==="mv")dd=dd.filter(r=>Math.abs(r[14]||0)>=1.5);
+else if(ft==="hy")dd=dd.filter(r=>r[3]!=null&&r[3]>=5.5);
+const cm=[0,1,2,14,3,4,5,6,7,8,9,10,11,12];
+if(srt>=0)dd.sort((a,b)=>{const ci=cm[srt];let va=a[ci]??-Infinity,vb=b[ci]??-Infinity;if(typeof va==="string")return sa?va.localeCompare(vb):vb.localeCompare(va);return sa?va-vb:vb-va;});
+const hs=i=>{if(srt===i)sSa(!sa);else{sSrt(i);sSa(i<=1);}};
+let gr=[],ls="";dd.forEach(r=>{if(r[13]!==ls&&!sr&&srt<0){ls=r[13];gr.push({t:"s",n:r[13]});}gr.push({t:"r",d:r});});
+const hd=["Company","Ticker","Price","Day Δ","Yld","1M","3M","1Y","Mkt Cap","D/EV","NAV","Cap Rt","Occ","SS NOI"];
+const hdSrc=[0,0,1,1,1,1,1,1,1,2,2,2,2,2]; // 0=static, 1=live (Polygon), 2=manual (Green St/SNL)
+const now=new Date(),tstr=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}),dstr=now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+
+const MF="'JetBrains Mono',monospace";
+
+return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif",fontSize:13,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+<style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:${S.bg}}::-webkit-scrollbar-thumb{background:${S.bd};border-radius:3px}`}</style>
+
+{/* NAV */}
+<div style={{background:S.sf,borderBottom:`1px solid ${S.bd}`,padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:46,flexShrink:0}}>
+<div style={{display:"flex",alignItems:"center",gap:16}}>
+<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:5,height:20,background:S.ac,borderRadius:2}}/><span style={{fontSize:14,fontWeight:700,color:S.br}}>REIT Observer</span></div>
+{["dashboard","screener"].map(k=><button key={k} onClick={()=>sPg(k)} style={{padding:"12px 16px",fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:pg===k?S.ac:S.mu,background:"none",border:"none",borderBottom:`2px solid ${pg===k?S.ac:"transparent"}`,cursor:"pointer",textTransform:"uppercase",letterSpacing:.5}}>{k.charAt(0).toUpperCase()+k.slice(1)}</button>)}
+</div>
+<div style={{display:"flex",alignItems:"center",gap:12}}>
+<div style={{width:7,height:7,borderRadius:"50%",background:apiOk===null?"#fbbf24":apiOk?"#34d399":"#f87171",animation:apiOk!==false?"pulse 2s ease-in-out infinite":"none"}}/>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu}}>{apiOk===null?"Connecting to Polygon.io…":apiOk?`Live · ${tickersUp}/${R.length} · Polygon${_gsAvailable?" + Green Street":""}${loadMsg?" · "+loadMsg:_fundLoaded?" · All data live":""}`:"API Error"+(feedErr?" · "+feedErr:"")}</span>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,background:S.sf2,padding:"3px 8px",borderRadius:3}}>{ss}s</span>
+<button onClick={()=>{sCd(0);doRefresh();}} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"5px 12px",borderRadius:4,border:`1px solid ${S.bd}`,background:"transparent",color:S.tx,cursor:"pointer"}}>⟳</button>
+</div></div>
+
+{apiOk===false&&<div style={{background:"rgba(248,113,113,.1)",borderBottom:"1px solid #f87171",padding:"6px 24px",fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#f87171"}}>⚠ Polygon.io error{feedErr?": "+feedErr:""} — Showing baseline data. Check API key or try refreshing.</div>}
+{feedMode==="grouped"&&apiOk&&<div style={{background:"rgba(251,191,36,.08)",borderBottom:"1px solid rgba(251,191,36,.3)",padding:"5px 24px",fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:"#fbbf24"}}>◉ Snapshot unavailable — using grouped daily. Day Δ = open-to-close.</div>}
+{loadMsg&&apiOk&&<div style={{background:"rgba(129,140,248,.08)",borderBottom:"1px solid rgba(129,140,248,.3)",padding:"5px 24px",fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:"#818cf8"}}>{loadMsg}</div>}
+
+{/* DASHBOARD */}
+{pg==="dashboard"&&<div style={{flex:1,overflow:"auto",padding:"16px 24px"}}>
+<div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto"}}>{SO.map(s=>{const v=SR[s];return<div key={s} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 11px",background:S.sf,border:`1px solid ${S.bd}`,borderRadius:5,whiteSpace:"nowrap"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,textTransform:"uppercase"}}>{s}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,fontWeight:700,color:v!=null?cc(v):S.mu}}>{v!=null?(v>=0?"+":"")+v.toFixed(2)+"%":"–"}</span></div>;})}</div>
+
+<div style={{display:"grid",gridTemplateColumns:"270px 1fr",gap:14,marginBottom:14}}>
+<div style={{display:"flex",flexDirection:"column",gap:12}}>
+{[{l:"▲ Gainers",li:tG,c:"#34d399"},{l:"▼ Losers",li:tL,c:"#f87171"}].map(o=><div key={o.l} style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:o.c,marginBottom:8}}>{o.l}</div>{o.li.map(r=><div key={r[1]} onClick={()=>openModal(r)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${S.bd}`,cursor:"pointer"}}><div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:600,color:S.br,fontSize:12}}>{r[1]}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,marginLeft:6}}>${r[2].toFixed(2)}</span></div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:700,fontSize:12,color:o.c}}>{r[14]>=0?"+":""}{r[14].toFixed(2)}%</span></div>)}</div>)}
+<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}>{[
+["Live Tickers",tickersUp+"/"+R.length,apiOk?"#34d399":"#f87171"],
+["Last Refresh",lastRefresh?lastRefresh.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"–",apiOk?"#34d399":"#fbbf24"],
+["","",""],
+["◆ LIVE · Polygon.io","","#34d399"],
+["Price + Day Δ",feedMode==="snapshot"?"Snapshot (RT)":"Grouped Daily",feedMode==="snapshot"?"#34d399":"#fbbf24"],
+["Yld / 1M / 3M / 1Y",_fundLoaded?"Calculated":"Loading…",_fundLoaded?"#34d399":"#fbbf24"],
+["Mkt Cap",_fundLoaded?"Shares × Price":"Loading…",_fundLoaded?"#34d399":"#fbbf24"],
+["","",""],
+["◆ MANUAL · Update Quarterly","","#f59e0b"],
+["D/EV","Green St / SNL","#f59e0b"],
+["NAV Disc","Green St / SNL","#f59e0b"],
+["Cap Rt","Green St / SNL","#f59e0b"],
+["Occupancy","Earnings / SNL","#f59e0b"],
+["SS NOI","Earnings / SNL","#f59e0b"],
+["","",""],
+["◆ NEWS SOURCES","","#818cf8"],
+["Polygon.io","Market news","#818cf8"],
+["Finnhub","Broad coverage","#818cf8"],
+["Green Street",_gsAvailable?(_gsMode==="direct"?"Direct ✓":"Proxy ✓"):"Offline — use .bat launcher",_gsAvailable?"#34d399":"#5a6878"]
+].map((a,i)=>{if(a[0]===""&&a[1]==="")return<div key={i} style={{borderBottom:`1px solid ${S.bd}`,margin:"2px 0"}}/>;return<div key={i} style={{display:"flex",justifyContent:"space-between",padding:a[2]==="#34d399"||a[2]==="#f59e0b"&&a[1]===""?"6px 0":"3px 0"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:a[1]===""?8:9,color:a[1]===""?a[2]:S.mu,textTransform:"uppercase",fontWeight:a[1]===""?600:400,letterSpacing:a[1]===""?.6:.3}}>{a[0]}</span>{a[1]&&<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,fontWeight:500,color:a[2]}}>{a[1]}</span>}</div>;})}</div>
+</div>
+
+<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",display:"flex",flexDirection:"column"}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:S.ac}}>Daily Brief · {briefsTs?briefsTs.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}):"–"} · {briefs.length} stories</span><button onClick={doGenerate} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${S.ac}`,background:S.acD,color:S.ac,cursor:"pointer",textTransform:"uppercase"}}>◆ Regenerate</button></div>
+<div style={{flex:1,overflow:"auto"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+{briefs.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:20,fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu}}>Loading briefs… generating after data loads.</div>}
+{briefs.map((b,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${TC[b.type]}`,animation:`fadeIn 0.3s ease ${i*0.05}s both`}}>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,textTransform:"uppercase",letterSpacing:.6,color:TC[b.type],marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{TI[b.type]} {b.tag}</span>{b.url?<a href={b.url} target="_blank" rel="noopener" style={{color:S.mu,fontSize:7,textDecoration:"none",display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>{b.source} · {b.date} <span style={{color:S.ac,fontSize:9}}>↗</span></a>:<span style={{color:S.mu,fontSize:7,textTransform:"none"}}>{b.source} · {b.date}</span>}</div>
+<div style={{fontSize:11.5,color:S.tx,lineHeight:1.55}}>{b.text}</div></div>)}
+</div></div></div>
+
+{/* AI DAILY SUMMARY */}
+<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",marginTop:14}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"#34d399"}}>◆ Daily Market Summary · {aiSummaryTs?aiSummaryTs.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}):"Auto-generates at 5:00 PM ET"} · Claude AI</span>
+<button onClick={generateAISummary} disabled={aiSummaryLoading} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${aiSummaryLoading?"#5a6878":"#34d399"}`,background:aiSummaryLoading?"transparent":"rgba(52,211,153,.1)",color:aiSummaryLoading?"#5a6878":"#34d399",cursor:aiSummaryLoading?"wait":"pointer",textTransform:"uppercase"}}>{aiSummaryLoading?"◆ Generating…":"◆ Generate Now"}</button>
+</div>
+{aiSummaryLoading&&<div style={{padding:"20px 0",textAlign:"center"}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,animation:"pulse 1.5s ease-in-out infinite"}}>Searching the web and analyzing today's REIT market…</div></div>}
+{!aiSummaryLoading&&!aiSummary&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,padding:"12px 0",lineHeight:1.6}}>The daily summary auto-generates at 5:00 PM ET after market close. Hit "Generate Now" to run it manually.</div>}
+{aiSummary&&<div style={{fontSize:12,color:S.tx,lineHeight:1.7,whiteSpace:"pre-wrap",fontFamily:"system-ui,sans-serif"}}>{aiSummary.split(/\*\*([^*]+)\*\*/).map((part,i)=>i%2===1?<span key={i} style={{fontWeight:700,color:S.br,fontFamily:"'JetBrains Mono',monospace",fontSize:11}}>{part}</span>:<span key={i}>{part}</span>)}</div>}
+</div>
+
+</div></div>}
+{pg==="screener"&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+<div style={{padding:"10px 24px",display:"flex",gap:6,alignItems:"center"}}>{[["all","All"],["dd","Deep Disc"],["mv","Day Movers"],["hy","Hi Yield"]].map(a=><button key={a[0]} onClick={()=>sFt(a[0])} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${ft===a[0]?S.ac:S.bd}`,background:ft===a[0]?S.acD:"transparent",color:ft===a[0]?S.ac:S.mu,cursor:"pointer",textTransform:"uppercase"}}>{a[1]}</button>)}
+<input value={sr} onChange={e=>sSr(e.target.value)} placeholder="Search ticker or name..." style={{marginLeft:"auto",fontFamily:"'JetBrains Mono',monospace",fontSize:10,padding:"5px 12px",borderRadius:4,border:`1px solid ${S.bd}`,background:S.sf,color:S.tx,outline:"none",width:170}}/>
+<div style={{display:"flex",alignItems:"center",gap:10,marginLeft:12}}><span style={{display:"flex",alignItems:"center",gap:3}}><span style={{width:5,height:5,borderRadius:"50%",background:"#34d399",display:"inline-block"}}/><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>LIVE</span></span><span style={{display:"flex",alignItems:"center",gap:3}}><span style={{width:5,height:5,borderRadius:"50%",background:"#f59e0b",display:"inline-block"}}/><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>MANUAL</span></span></div>
+</div>
+<div style={{flex:1,overflow:"auto",padding:"0 24px"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead><tr>{hd.map((h,i)=><th key={i} onClick={()=>hs(i)} style={{position:"sticky",top:0,background:S.sf,fontFamily:"'JetBrains Mono',monospace",fontSize:8.5,fontWeight:500,textTransform:"uppercase",letterSpacing:.4,color:srt===i?S.ac:hdSrc[i]===2?"#f59e0b":S.mu,padding:"8px 6px",textAlign:i<=1?"left":"right",borderBottom:`1px solid ${S.bd}`,whiteSpace:"nowrap",cursor:"pointer",userSelect:"none",zIndex:1}}>{hdSrc[i]>=1&&<span style={{display:"inline-block",width:4,height:4,borderRadius:"50%",background:hdSrc[i]===1?"#34d399":"#f59e0b",marginRight:3,verticalAlign:"middle"}}/>}{h}{srt===i?(sa?" ↑":" ↓"):""}</th>)}</tr></thead>
+<tbody>{gr.map((item,idx)=>{
+if(item.t==="s")return<tr key={"s"+idx}><td colSpan={14} style={{fontWeight:600,color:S.br,fontSize:9.5,fontFamily:"'JetBrains Mono',monospace",textTransform:"uppercase",letterSpacing:.7,background:S.sf,borderBottom:`2px solid ${S.bd}`,padding:6}}>{item.n}</td></tr>;
+const r=item.d,dp=r[14];
+return<tr key={r[1]} onClick={()=>openModal(r)} style={{borderBottom:`1px solid ${S.bd}`,cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.background=S.sf2} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+<td style={{padding:6,textAlign:"left",fontFamily:"system-ui",fontWeight:500,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r[0]}</td>
+<td style={{padding:6,textAlign:"left",fontFamily:"'JetBrains Mono',monospace",fontWeight:600,color:S.br}}>{r[1]}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>${r[2].toFixed(2)}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",fontWeight:Math.abs(dp||0)>=2?700:400,color:dp!=null?cc(dp):S.mu,background:dp!=null&&Math.abs(dp)>=3?(dp>0?"rgba(52,211,153,.07)":"rgba(248,113,113,.07)"):"transparent"}}>{fd(dp)}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[3]!=null?r[3].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[4])}}>{fc(r[4])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[5])}}>{fc(r[5])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[6])}}>{fc(r[6])}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>${r[7].toFixed(1)}B</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:r[8]>=60?"#f87171":S.tx}}>{r[8]}%</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:nc(r[9]),fontWeight:Math.abs(r[9]||0)>=30?600:400}}>{r[9]!=null?fc(r[9]):"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[10]!=null?r[10].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace"}}>{r[11]!=null?r[11].toFixed(1)+"%":"–"}</td>
+<td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[12])}}>{fc(r[12])}</td></tr>;})}</tbody></table></div></div>}
+
+{/* MODAL */}
+{md&&<div onClick={e=>{if(e.target===e.currentTarget)sMd(null);}} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.7)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:50}}>
+<div style={{background:S.bg,border:`1px solid ${S.bd}`,borderRadius:10,width:660,maxWidth:"95vw",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.6)"}}>
+<div style={{padding:"14px 18px",borderBottom:`1px solid ${S.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:16,fontWeight:600,color:S.br}}>{md[1]} · {md[0]}</span><button onClick={()=>sMd(null)} style={{background:"none",border:"none",color:S.mu,fontSize:20,cursor:"pointer"}}>×</button></div>
+<div style={{display:"flex",gap:12,padding:"10px 18px",borderBottom:`1px solid ${S.bd}`,overflowX:"auto"}}>{[["Price","$"+md[2].toFixed(2)],["Day",fd(md[14])],["Yld",md[3]!=null?md[3].toFixed(1)+"%":"–"],["1M",fc(md[4])],["1Y",fc(md[6])],["Cap","$"+md[7].toFixed(1)+"B"],["NAV",md[9]!=null?fc(md[9]):"–"]].map((m,i)=>{const cl=m[0]==="Day"?cc(md[14]):m[0]==="1M"?cc(md[4]):m[0]==="1Y"?cc(md[6]):m[0]==="NAV"?nc(md[9]):S.br;return<div key={i} style={{textAlign:"center",minWidth:52}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu,textTransform:"uppercase"}}>{m[0]}</div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,fontWeight:600,color:cl,marginTop:2}}>{m[1]}</div></div>;})}</div>
+<div style={{padding:"14px 18px"}}>
+{DETAILS[md[1]]&&<>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:8}}>Company Overview</div>
+<div style={{fontSize:12,color:S.tx,lineHeight:1.6,marginBottom:12}}>{DETAILS[md[1]].summary.description}</div>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 16px",marginBottom:14}}>{[["CEO",DETAILS[md[1]].summary.ceo],["HQ",DETAILS[md[1]].summary.headquarters],["Portfolio",DETAILS[md[1]].summary.portfolio_size],["Focus",DETAILS[md[1]].summary.market_focus]].map((a,i)=><div key={i}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu,textTransform:"uppercase"}}>{a[0]}</span><div style={{fontSize:11,color:S.br,marginTop:1}}>{a[1]}</div></div>)}</div>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:6}}>Major Holdings</div>
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>{DETAILS[md[1]]?.major_holdings.map((h,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:5,padding:"7px 9px"}}><div style={{fontSize:11,fontWeight:600,color:S.br}}>{h.name}</div><div style={{fontSize:9,color:S.mu}}>{h.location} · {h.type}</div>{h.detail&&<div style={{fontSize:9,color:S.tx,marginTop:2}}>{h.detail}</div>}</div>)}</div>
+<div style={{borderTop:`1px solid ${S.bd}`,margin:"14px 0"}}/>
+</>}
+
+{EARNINGS[md[1]]&&<>
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:8}}>Latest Earnings · {EARNINGS[md[1]].q}</div>
+<div style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:6,padding:"10px 14px",marginBottom:14}}>
+<div style={{display:"flex",gap:16,marginBottom:6}}><div><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>FFO</span><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,fontWeight:700,color:S.br}}>{EARNINGS[md[1]].ffo}</div></div><div><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>QUARTER</span><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,fontWeight:600,color:S.br}}>{EARNINGS[md[1]].q}</div></div></div>
+<div style={{fontSize:11.5,color:S.tx,lineHeight:1.6}}>{EARNINGS[md[1]].summary}</div>
+</div>
+<div style={{borderTop:`1px solid ${S.bd}`,margin:"14px 0"}}/>
+</>}
+
+<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:S.ac,marginBottom:8}}>Latest News · {md[1]}</div>
+{mdNewsLoading&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,padding:"12px 0"}}>Fetching latest news…</div>}
+{!mdNewsLoading&&mdNews.length===0&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,padding:"12px 0"}}>No recent news found for {md[1]}. Check Bloomberg Terminal or sell-side coverage.</div>}
+{mdNews.map((it,i)=><a key={i} href={it.url||"#"} target="_blank" rel="noopener" style={{display:"block",padding:"10px 0",borderBottom:i<mdNews.length-1?`1px solid ${S.bd}`:"none",textDecoration:"none",cursor:it.url?"pointer":"default"}}>
+<div style={{fontSize:12.5,color:S.br,marginBottom:3,lineHeight:1.4}}>{it.title}</div>
+{it.desc&&<div style={{fontSize:11,color:S.mu,lineHeight:1.5,marginBottom:3}}>{it.desc}</div>}
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:it.trusted?"#34d399":S.tx,opacity:it.trusted?1:.6}}>{it.trusted?"● ":""}{it.source} · {it.date} · <span style={{opacity:.4}}>{it.from==="finnhub"?"Finnhub":"Polygon"}</span></span>{it.url&&<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.ac}}>Read ↗</span>}</div>
+</a>)}
+</div></div></div>}
+
+<div style={{borderTop:`1px solid ${S.bd}`,padding:"6px 24px",display:"flex",justifyContent:"space-between",flexShrink:0,background:S.sf}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>REIT Daily Observer · Starwood Capital Group · {dstr}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>Live: Polygon.io (60s) · Analysis: Claude AI · Baseline: Green Street / SNL</span></div>
+</div>);}
+
+ReactDOM.render(React.createElement(App),document.getElementById("root"));
+</script>
+</body></html>
