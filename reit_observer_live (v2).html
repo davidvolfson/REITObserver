@@ -14,73 +14,73 @@ const {useState,useEffect,useRef}=React;
 
 // Simulated live data — realistic prices and daily changes as of 3/3/26
 const R=[
-["AvalonBay","AVB",218.45,3.3,0.7,-2.6,-20.5,26.0,24,-22.0,5.9,95.7,1.1,"Multifamily",-0.82],
-["Equity Residential","EQR",68.91,4.1,1.7,2.6,-14.2,24.8,26,-22.6,5.8,96.3,2.8,"Multifamily",0.54],
-["Essex Property","ESS",282.30,3.7,1.3,-2.7,-16.1,17.2,31,-14.7,5.4,96.1,2.4,"Multifamily",-0.31],
-["MAA","MAA",151.22,4.1,-0.6,-1.2,-19.8,16.1,25,-15.6,5.9,95.6,-1.8,"Multifamily",-1.45],
-["UDR","UDR",41.88,4.1,1.1,3.9,-15.4,13.4,32,-26.0,6.2,96.6,2.3,"Multifamily",0.23],
-["Camden Property","CPT",121.55,3.5,-0.5,2.2,-12.1,11.9,24,-17.2,5.8,95.5,null,"Multifamily",0.68],
-["Independence Realty","IRT",17.82,3.8,-1.5,-3.0,-22.4,4.1,36,-17.9,6.3,95.3,2.7,"Multifamily",-0.45],
-["Veris Residential","VRE",20.15,1.5,26.0,25.2,14.2,1.9,44,-14.5,5.1,94.7,-2.7,"Multifamily",1.92],
-["NexPoint Residential","NXRT",26.44,8.0,-6.8,-11.3,-32.4,0.7,69,-35.3,6.4,94.7,-0.4,"Multifamily",-2.88],
-["Invitation Homes","INVH",29.11,4.1,-1.6,-5.7,-20.9,16.2,33,-39.6,6.1,96.5,1.1,"SFR",0.37],
-["American Homes","AMH",33.50,3.9,-4.8,-6.0,-17.6,12.7,29,-33.3,5.8,95.9,4.6,"SFR",-0.15],
-["Boston Properties","BXP",62.44,4.5,-11.7,-20.8,-17.8,10.2,61,-23.8,7.9,null,2.6,"Office",-3.21],
-["Alexandria RE","ARE",58.20,4.9,-6.5,1.5,-46.1,9.2,59,-37.6,9.1,91.4,-3.1,"Office",1.85],
-["Vornado","VNO",29.33,2.3,-14.1,-25.1,-32.7,6.0,61,-42.6,7.9,87.5,-7.4,"Office",-1.67],
-["SL Green","SLG",38.55,8.1,-17.9,-22.0,-42.9,2.9,77,-35.4,6.6,92.4,-5.5,"Office",2.44],
-["Kilroy Realty","KRC",31.20,6.9,-14.8,-30.8,-16.1,3.6,54,-36.8,9.8,80.9,0.6,"Office",-0.92],
-["Cousins Properties","CUZ",24.10,5.3,-9.4,-10.2,-23.2,4.0,46,-22.6,8.7,89.3,0.3,"Office",-0.41],
-["Douglas Emmett","DEI",10.33,7.4,-6.0,-19.3,-41.3,2.0,68,-34.1,8.4,null,3.5,"Office",-1.55],
-["Highwoods","HIW",23.88,8.4,-14.4,-19.3,-21.9,2.5,58,-30.1,9.6,85.1,-3.6,"Office",-0.75],
-["Corp Office","CDP",33.67,3.8,5.1,4.1,18.3,3.7,40,2.2,7.2,94.3,4.6,"Office",0.89],
-["Hudson Pacific","HPP",6.85,null,-19.4,-47.2,-68.6,0.5,87,-72.2,9.9,null,-10.7,"Office",-4.52],
-["Empire State","ESRT",6.22,2.3,-11.7,-16.0,-35.5,1.6,55,-53.2,10.9,null,-1.5,"Office",-0.64],
-["JBG SMITH","JBGS",14.88,4.7,-9.7,-17.4,-4.0,1.1,66,-45.7,8.5,null,-6.7,"Office",-1.33],
-["Brandywine","BDN",3.44,9.3,11.7,-6.6,-35.1,0.6,83,-59.5,11.7,88.7,2.1,"Office",3.72],
-["Piedmont Office","PDM",8.11,null,-8.8,-13.5,2.3,0.9,70,-28.1,9.4,89.2,2.8,"Office",0.37],
-["Prologis","PLD",132.88,3.2,10.8,11.2,16.1,136.2,22,14.1,4.3,95.2,5.2,"Industrial",1.24],
-["Lineage","LINE",43.22,4.8,11.9,13.1,-32.1,10.5,42,-22.4,8.4,null,null,"Industrial",2.15],
-["Rexford","REXR",39.55,4.4,-4.9,-10.1,-8.1,9.0,26,-18.9,5.9,96.8,5.5,"Industrial",-0.63],
-["EastGroup","EGP",188.90,3.4,9.9,8.4,9.1,10.5,12,10.5,4.5,96.6,6.9,"Industrial",0.48],
-["Americold","COLD",14.22,6.5,5.0,24.4,-41.8,3.9,53,-34.9,9.8,75.5,-2.9,"Industrial",-1.82],
-["STAG","STAG",40.88,3.8,5.6,-0.5,10.0,7.5,29,-1.1,6.1,97.0,3.9,"Industrial",0.34],
-["First Industrial","FR",60.44,3.3,9.9,9.8,10.8,8.6,22,-3.5,5.2,94.6,6.1,"Industrial",0.72],
-["Terreno","TRNO",68.33,3.0,7.4,5.2,-2.7,6.8,13,10.2,4.1,98.6,6.9,"Industrial",0.55],
-["Lexington","LXP",51.22,5.4,0.2,1.9,12.5,2.9,33,-12.3,6.6,96.9,2.0,"Industrial",-0.23],
-["Kimco","KIM",25.88,4.0,12.5,14.2,9.0,16.1,36,-5.2,6.7,null,1.9,"Retail",0.93],
-["Regency Centers","REG",82.44,3.6,10.8,10.9,4.6,14.8,27,6.4,5.6,null,4.8,"Retail",0.67],
-["Brixmor","BRX",32.11,3.9,15.1,16.0,9.8,9.3,36,5.1,6.6,null,4.0,"Retail",1.15],
-["Kite Realty","KRG",27.55,4.2,12.8,12.9,17.6,5.7,35,-7.1,7.0,null,2.1,"Retail",0.51],
-["Phillips Edison","PECO",41.22,3.2,10.9,11.1,8.2,5.4,31,1.0,6.3,null,3.3,"Retail",0.28],
-["Urban Edge","UE",22.44,3.8,10.9,10.5,4.6,2.8,36,2.5,6.8,null,4.7,"Retail",0.82],
-["Federal Realty","FRT",114.55,3.9,7.2,10.3,4.6,9.4,34,1.3,6.0,null,4.4,"Retail",0.45],
-["Acadia","AKR",22.11,3.6,6.6,2.5,-8.5,3.1,32,8.2,5.5,null,8.2,"Retail",-0.36],
-["Simon Property","SPG",215.88,4.0,10.5,9.9,11.6,77.9,30,26.7,5.7,null,5.1,"Retail",0.78],
-["Macerich","MAC",21.88,3.1,15.5,18.7,11.7,5.5,46,19.1,6.8,null,1.7,"Retail",1.42],
-["Tanger","SKT",38.44,3.1,14.1,10.3,5.6,4.4,28,18.5,6.8,null,4.0,"Retail",0.65],
-["Realty Income","O",63.55,5.1,10.0,17.3,18.4,61.6,31,22.1,6.2,null,null,"Net Lease",-0.47],
-["W.P. Carey","WPC",72.11,5.1,7.9,10.8,16.3,16.6,34,41.8,6.1,null,null,"Net Lease",-0.82],
-["NNN REIT","NNN",47.88,5.0,7.5,10.3,7.5,8.6,36,17.8,7.0,null,null,"Net Lease",0.33],
-["Agree Realty","ADC",84.22,3.7,10.8,7.3,9.4,9.2,28,53.0,5.5,null,null,"Net Lease",0.52],
-["Essential Properties","EPRT",35.44,3.5,12.5,7.8,4.4,7.1,26,23.5,5.9,null,null,"Net Lease",0.71],
-["Safehold","SAFE",17.55,4.0,15.7,15.0,-11.6,1.2,81,66.3,4.6,null,null,"Net Lease",-0.57],
-["Broadstone","BNL",20.22,5.7,6.1,10.7,15.6,3.7,42,1.2,7.0,null,null,"Net Lease",0.15],
-["Welltower","WELL",228.33,1.3,12.9,0.4,36.7,144.3,9,160.5,2.7,null,null,"Healthcare",1.88],
-["Ventas","VTR",92.44,2.2,13.4,7.6,25.5,41.5,23,82.9,4.3,null,null,"Healthcare",1.22],
-["Healthpeak","DOC",18.55,6.6,-0.1,-2.9,-12.3,12.6,43,-19.0,7.3,null,null,"Healthcare",-0.54],
-["Omega Healthcare","OHI",50.11,5.4,11.8,5.3,31.0,15.3,22,71.8,6.0,null,null,"Healthcare",0.82],
-["Medical Properties","MPT",5.44,6.7,12.7,-0.2,3.2,3.5,75,40.0,7.4,null,null,"Healthcare",-3.49],
-["Healthcare Realty","HR",19.22,5.0,10.2,0.9,9.8,6.6,41,-11.9,6.6,null,null,"Healthcare",0.42],
-["Sabra","SBRA",21.55,5.6,11.0,6.3,24.9,5.4,30,26.8,6.9,null,null,"Healthcare",0.37],
-["Public Storage","PSA",325.66,3.7,10.6,12.0,0.4,54.1,21,-3.7,5.2,92.2,null,"Storage",0.52],
-["Extra Space","EXR",158.22,4.1,8.0,13.3,-1.6,33.5,29,-0.5,5.3,94.1,-2.5,"Storage",0.34],
-["CubeSmart","CUBE",43.55,4.9,10.1,10.1,-3.3,9.4,27,-12.1,5.6,89.9,-1.5,"Storage",-0.21],
-["National Storage","NSA",36.88,6.2,9.5,18.8,-10.2,4.8,46,-4.0,6.0,85.0,-5.7,"Storage",-0.43],
-["Sun Communities","SUI",141.22,2.9,7.4,6.1,2.4,17.6,17,-2.4,5.8,99.2,5.4,"MH",0.33],
-["Equity LifeStyle","ELS",69.88,3.1,6.8,7.1,-1.7,13.5,20,-9.5,4.8,94.3,5.3,"MH",0.52],
-["Equinix","EQIX",1022.44,2.0,20.3,29.8,7.0,97.8,18,-2.4,5.7,null,null,"Data Ctr",2.33],
-["Digital Realty","DLR",185.55,2.7,8.6,11.5,12.7,62.2,26,10.4,5.4,null,8.0,"Data Ctr",1.67]];
+["AvalonBay","AVB",177.9,4.0,2.3,-0.1,-18.6,26.1,24,-21.7,5.9,95.7,1.1,"Multifamily",-0.82],
+["Equity Residential","EQR",62.7,4.4,-1.8,2.7,-12.8,24.6,26,-23.2,5.9,96.3,2.8,"Multifamily",0.54],
+["Essex Property","ESS",255.1,4.1,-1.1,-0.1,-15.4,17.2,31,-14.7,5.4,96.1,2.4,"Multifamily",-0.31],
+["MAA","MAA",132.8,4.6,0.5,0.9,-20.4,15.9,25,-16.3,5.9,95.6,-1.8,"Multifamily",-1.45],
+["UDR","UDR",37.3,4.6,-0.8,5.8,-15.8,13.3,32,-26.5,6.3,96.6,2.3,"Multifamily",0.23],
+["Camden Property","CPT",106.5,4.0,-0.1,2.6,-12.6,11.7,24,-18.6,5.9,95.5,null,"Multifamily",0.68],
+["Independence Realty","IRT",16.5,4.1,-0.8,-0.4,-21.3,4.1,36,-18.4,6.3,95.3,2.7,"Multifamily",-0.45],
+["Veris Residential","VRE",18.9,1.7,13.3,32.1,14.1,1.9,44,-14.5,5.1,94.7,-2.7,"Multifamily",1.92],
+["NexPoint Residential","NXRT",27.4,7.7,-9.9,-7.6,-32.2,0.7,69,-37.2,6.5,92.7,-4.8,"Multifamily",-2.88],
+["Invitation Homes","INVH",26.2,4.6,-0.5,-3.4,-22.4,16.1,34,-39.9,6.1,96.5,1.1,"SFR",0.37],
+["American Homes","AMH",29.9,4.4,-3.0,-3.0,-17.1,12.6,29,-33.5,5.8,95.9,4.6,"SFR",-0.15],
+["Boston Properties","BXP",52.9,5.3,-18.2,-23.6,-20.6,9.4,63,-30.0,8.1,null,2.6,"Office",-3.21],
+["Alexandria RE","ARE",50.7,5.7,-9.2,11.5,-49.2,8.6,61,-41.5,9.3,91.4,-3.1,"Office",1.85],
+["Vornado","VNO",26.9,2.4,-13.8,-22.6,-29.5,5.9,61,-44.0,8.0,87.5,-7.4,"Office",-1.67],
+["SL Green","SLG",38.8,8.0,-11.4,-9.0,-35.2,3.0,76,-32.0,6.5,92.4,-5.5,"Office",2.44],
+["Kilroy Realty","KRC",29.8,7.2,-14.8,-26.9,-9.7,3.6,54,-36.8,9.8,80.9,0.6,"Office",-0.92],
+["Cousins Properties","CUZ",23.2,5.5,-9.4,-5.9,-20.0,4.0,46,-22.4,8.7,89.3,0.3,"Office",-0.41],
+["Douglas Emmett","DEI",10.1,7.5,-4.7,-14.8,-39.1,2.1,68,-32.8,8.3,null,3.5,"Office",-1.55],
+["Highwoods","HIW",22.1,9.0,-14.9,-14.9,-22.3,2.5,59,-31.1,9.7,85.1,-3.6,"Office",-0.75],
+["Corp Office","CDP",32.1,4.0,-1.2,10.1,20.2,3.7,40,3.1,7.2,94.3,4.6,"Office",0.89],
+["Hudson Pacific","HPP",7.0,null,-14.2,-48.1,-66.9,0.5,87,-73.1,9.9,null,-10.7,"Office",-4.52],
+["Empire State","ESRT",5.5,2.5,-18.1,-18.1,-34.9,1.5,57,-56.0,11.2,null,-1.5,"Office",-0.64],
+["JBG SMITH","JBGS",14.8,4.7,-10.9,-17.3,-0.8,1.1,67,-47.1,8.6,null,-6.7,"Office",-1.33],
+["Brandywine","BDN",3.1,10.5,-6.4,-1.3,-34.1,0.5,83,-61.1,11.8,88.7,2.1,"Office",3.72],
+["Piedmont Office","PDM",7.3,null,-18.1,-11.5,1.4,0.9,71,-31.2,9.5,89.2,2.8,"Office",0.37],
+["Prologis","PLD",134.5,3.2,-1.8,5.1,11.8,128.7,24,6.1,4.6,95.2,5.2,"Industrial",1.24],
+["Lineage","LINE",39.5,5.3,2.3,11.8,-35.2,10.2,43,-24.3,8.5,null,null,"Industrial",2.15],
+["Rexford","REXR",36.0,4.8,-7.5,-11.5,-11.6,8.6,28,-14.8,5.8,96.8,5.5,"Industrial",-0.63],
+["EastGroup","EGP",188.1,3.3,-0.9,4.6,1.4,10.1,14,3.3,4.7,96.6,6.9,"Industrial",0.48],
+["Americold","COLD",12.5,7.4,-1.2,16.4,-44.4,3.6,54,-39.2,10.1,75.5,-2.9,"Industrial",-1.82],
+["STAG","STAG",38.1,4.1,-3.1,-1.8,4.2,7.4,30,-7.0,6.3,97.0,3.9,"Industrial",0.34],
+["First Industrial","FR",59.9,3.3,0.1,3.5,3.8,8.2,23,-4.0,5.3,94.6,6.1,"Industrial",0.72],
+["Terreno","TRNO",62.6,3.3,-5.4,0.4,-8.2,6.5,12,7.0,4.3,98.6,6.9,"Industrial",0.55],
+["Lexington","LXP",47.7,5.9,-7.5,-2.0,3.9,2.8,33,-13.4,6.7,96.9,2.0,"Industrial",-0.23],
+["Kimco","KIM",23.3,4.5,6.6,15.6,8.4,15.9,36,-6.3,6.7,null,1.9,"Retail",0.93],
+["Regency Centers","REG",78.7,3.8,4.6,14.5,5.7,14.7,28,5.9,5.6,null,4.8,"Retail",0.67],
+["Brixmor","BRX",30.1,4.1,6.2,19.4,12.5,9.2,36,4.4,6.6,null,4.0,"Retail",1.15],
+["Kite Realty","KRG",25.8,4.5,3.6,13.8,15.8,5.6,35,-8.1,7.1,null,2.1,"Retail",0.51],
+["Phillips Edison","PECO",38.7,3.4,3.1,11.0,7.1,5.4,31,-0.5,6.4,null,3.3,"Retail",0.28],
+["Urban Edge","UE",20.5,4.1,-2.6,6.3,2.1,2.7,37,-1.2,7.0,null,4.7,"Retail",0.82],
+["Federal Realty","FRT",107.6,4.2,1.7,10.6,6.6,9.3,34,0.1,6.0,null,4.4,"Retail",0.45],
+["Acadia","AKR",20.9,3.8,-0.6,5.9,-7.4,3.1,32,7.8,5.5,null,8.2,"Retail",-0.36],
+["Simon Property","SPG",194.8,4.5,-2.4,6.7,11.6,74.5,31,21.1,5.9,null,5.1,"Retail",0.78],
+["Macerich","MAC",18.8,3.6,-4.2,5.9,6.9,5.0,48,9.4,7.1,null,1.7,"Retail",1.42],
+["Tanger","SKT",36.0,3.3,7.3,12.2,5.5,4.3,29,15.1,7.0,null,4.0,"Retail",0.65],
+["Realty Income","O",65.0,5.0,2.8,11.1,13.4,59.8,32,18.5,6.3,null,null,"Net Lease",0.0],
+["W.P. Carey","WPC",72.6,5.1,2.0,9.5,13.5,16.1,35,37.9,6.2,null,null,"Net Lease",-0.82],
+["NNN REIT","NNN",45.1,5.3,5.2,12.2,5.5,8.6,36,17.3,7.0,null,null,"Net Lease",0.33],
+["Agree Realty","ADC",81.4,3.9,8.8,10.1,8.6,9.3,28,54.6,5.4,null,null,"Net Lease",0.52],
+["Essential Properties","EPRT",34.3,3.6,8.2,12.0,8.2,7.2,26,25.4,5.9,null,null,"Net Lease",0.71],
+["Safehold","SAFE",15.4,4.6,2.2,14.5,-15.4,1.1,81,58.7,4.7,null,null,"Net Lease",-0.57],
+["Broadstone","BNL",19.2,6.1,-0.6,9.9,13.6,3.7,42,-0.6,7.0,null,null,"Net Lease",0.15],
+["Welltower","WELL",204.3,1.4,4.3,0.0,37.1,146.7,11,136.1,2.9,null,null,"Healthcare",1.88],
+["Ventas","VTR",84.9,2.5,2.8,5.3,25.4,42.5,23,63.3,4.5,null,null,"Healthcare",1.22],
+["Healthpeak","DOC",17.3,7.1,2.6,1.5,-14.2,12.3,45,-20.8,7.4,null,null,"Healthcare",-0.54],
+["Omega Healthcare","OHI",47.7,5.6,5.3,4.3,32.5,15.1,22,61.4,6.2,null,null,"Healthcare",0.82],
+["Medical Properties","MPT",5.5,6.6,2.1,-0.2,-3.2,3.3,76,34.5,7.5,null,null,"Healthcare",-3.49],
+["Healthcare Realty","HR",18.4,5.2,8.7,5.7,11.4,6.5,39,-12.7,6.6,null,null,"Healthcare",0.42],
+["Sabra","SBRA",20.4,5.9,7.3,5.9,23.2,5.5,29,21.3,6.8,null,null,"Healthcare",0.37],
+["Public Storage","PSA",308.1,3.9,7.4,13.3,-0.1,54.3,21,-3.4,5.2,92.2,null,"Storage",0.52],
+["Extra Space","EXR",146.6,4.4,4.7,13.2,-5.4,32.5,29,-3.4,5.4,94.1,-2.5,"Storage",0.34],
+["CubeSmart","CUBE",40.2,5.3,4.7,9.8,-4.9,9.2,27,-14.1,5.7,89.9,-1.5,"Storage",-0.21],
+["National Storage","NSA",34.2,6.7,4.5,15.3,-11.9,4.7,46,-6.4,6.1,85.0,-5.7,"Storage",-0.43],
+["Sun Communities","SUI",136.7,3.0,8.8,6.6,4.1,17.6,17,-2.2,5.8,99.2,5.4,"MH",0.33],
+["Equity LifeStyle","ELS",67.3,3.2,2.8,9.1,-0.6,13.5,19,-9.3,4.8,94.3,5.3,"MH",0.52],
+["Equinix","EQIX",937.2,2.2,10.5,26.4,7.5,94.1,19,-6.1,5.8,null,null,"Data Ctr",2.33],
+["Digital Realty","DLR",176.2,2.8,2.7,7.0,18.7,61.9,26,9.8,5.4,null,8.0,"Data Ctr",1.67]];
 
 // BRIEFS — institutional news feed for SCG leadership
 let BRIEFS=[];
@@ -180,9 +180,9 @@ async function detectGreenStreet(){
         signal:AbortSignal.timeout(3000)
       });
       if(res.ok){_gsAvailable=true;_gsMode="direct";console.log("GS: DIRECT connection established");return;}
-    }catch(e){}
-    // Even if ping fails, token worked — try direct mode
-    _gsAvailable=true;_gsMode="direct";console.log("GS: Direct mode (token OK, API reachable)");return;
+    }catch(e){
+      console.log("GS: Direct API blocked (CORS). Trying proxy...");
+    }
   }
 
   // Try 2: Local proxy at localhost:3001
@@ -226,7 +226,9 @@ async function fetchGSData(){
   try{
     const data=await gsApiFetch("https://api.greenstreet.com","/examples?region=na");
     if(data){_gsDataCache=data;console.log("GS data loaded:",typeof data==="object"?Object.keys(data).length+" keys":"ok");}
-  }catch(e){console.warn("GS Data error:",e);}
+  }catch(e){
+    if(e.message&&(e.message.includes("Failed to fetch")||e.message.includes("NetworkError"))){_gsAvailable=false;_gsMode="none";}else{console.warn("GS Data error:",e);}
+  }
 }
 
 async function fetchTickerNews(tickers){
@@ -640,9 +642,11 @@ async function fetchHistorical(){
   }
 }
 
-// ── 4. Dividends → trailing 12M yield ──
+// ── 4. Dividends → forward yield (matches Google/Yahoo/Bloomberg) ──
+// Uses most recent declared dividend × annualised frequency
+// Monthly payers (O, STAG, etc.) detected automatically
 async function fetchDividends(){
-  const from=dateBack(13);
+  const from=dateBack(14);
   const oneYrAgo=new Date();oneYrAgo.setFullYear(oneYrAgo.getFullYear()-1);
   const BATCH=10;
   const delay=ms=>new Promise(r=>setTimeout(r,ms));
@@ -652,10 +656,17 @@ async function fetchDividends(){
       fetch(`https://api.polygon.io/v3/reference/dividends?ticker=${tk}&ex_dividend_date.gte=${from}&limit=20&apiKey=${POLYGON_KEY}`)
         .then(r=>r.ok?r.json():null)
         .then(data=>{
-          if(data?.results){
-            let total=0;
-            data.results.forEach(d=>{if(d.cash_amount&&new Date(d.ex_dividend_date)>=oneYrAgo)total+=d.cash_amount;});
-            if(total>0)_annualDiv[tk]=total;
+          if(data?.results&&data.results.length>0){
+            // Sort newest first, filter to regular cash dividends only
+            const divs=data.results
+              .filter(d=>d.cash_amount&&d.cash_amount>0&&(d.dividend_type==="CD"||!d.dividend_type))
+              .sort((a,b)=>new Date(b.ex_dividend_date)-new Date(a.ex_dividend_date));
+            if(!divs.length)return;
+            const recent=divs[0].cash_amount;
+            // Count TTM payments to detect frequency (monthly=12, quarterly=4, semi=2, annual=1)
+            const ttm=divs.filter(d=>new Date(d.ex_dividend_date)>=oneYrAgo).length;
+            const freq=ttm>=10?12:ttm>=3?4:ttm>=2?2:4; // default quarterly if ambiguous
+            _annualDiv[tk]=recent*freq;
           }
         }).catch(()=>{})
     ));
@@ -774,6 +785,8 @@ const[aiSummaryTs,sAiSummaryTs]=useState(null);
 const[aiSummaryLoading,sAiSummaryLoading]=useState(false);
 const[mdNews,sMdNews]=useState([]);
 const[mdNewsLoading,sMdNewsLoading]=useState(false);
+const[apiKey,sApiKey]=useState(()=>localStorage.getItem("reit_anthropic_key")||"");
+const[showKeyInput,sShowKeyInput]=useState(false);
 
 // ── Claude AI Daily Summary ──
 const generateAISummary=async()=>{
@@ -788,40 +801,36 @@ const generateAISummary=async()=>{
     const bigMovers=R.filter(r=>Math.abs(r[14]||0)>=2).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14])).map(r=>`${r[1]} (${r[13]}) ${r[14]>=0?"+":""}${r[14].toFixed(2)}% to $${r[2].toFixed(2)}`).join("; ");
     const dateStr=new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
 
-    const prompt=`You are writing a close-of-day REIT market briefing for the CEO of Starwood Capital Group. Today is ${dateStr}. Be concise, institutional-grade, no filler. Format:
+    const prompt=`You are the REIT desk analyst writing a close-of-day briefing for Barry Sternlicht, CEO of Starwood Capital Group. Today is ${dateStr}.
 
-**[Day] — Close**
-**Rates:** [10Y yield, move, any credit spread note]
-**Oil:** [WTI level, move, context if relevant]
-**Equities:** [S&P, Nasdaq, Dow close levels and % change. VIX.]
+STRICT FORMAT — output exactly these 6 labeled sections, nothing else:
 
-**REIT-specific:** [Any analyst upgrades/downgrades, PT changes, capital markets activity (equity raises, debt deals, M&A), dividend announcements, or earnings for these 67 REITs today. If nothing, say "Quiet day for REIT-specific catalysts."]
+**Macro:** 10Y yield + move. S&P/Nasdaq/Dow levels + % change. VIX. WTI. One sentence max.
+**REIT Movers:** Tickers that moved ±2%+ today with ONE-phrase reason each (e.g. "WELL +3.1% on earnings beat"). Max 3 names. Use live data below.
+**REIT News:** Single most important REIT-specific catalyst today (upgrade/downgrade, deal, earnings, dividend). One sentence. If none: "No major catalysts today."
+**Credit:** Most notable CRE lending, CMBS, or private credit item today. One sentence. If none: "Quiet."
+**Sectors:** Two best and two worst performing sectors from live data. Four words each max.
+**This Week:** One upcoming event that matters (earnings, Fed speak, economic data, REIT conference). One sentence.
 
-**Biggest REIT movers:** [Only names that moved ±2%+ and why if known]
+RULES:
+- Every section: maximum 2 lines of text, no sub-bullets, no em-dashes mid-sentence
+- Skip anything Barry can read on Bloomberg himself
+- Use web search for today's specific news
 
-**Credit:** [Any notable CRE lending, CMBS, or private credit developments]
+Live dashboard data (${dateStr}):
+Sector moves: ${sectorLine}
+Top gainers: ${topGainers}
+Top losers: ${topLosers}
+Big movers (±2%+): ${bigMovers||"None above ±2%"}`;
 
-**This week:** [Upcoming REIT earnings, conferences, or macro events that matter for CRE]
-
-Rules: No generic market commentary he can see on Bloomberg. No mention of internal SCG deals. No explaining what stagflation means. If there's nothing notable in a section, keep it to one line. Search the web for today's specific REIT and CRE news.
-
-Here is today's live data from the REIT Observer dashboard (67 REITs):
-Sector performance (cap-weighted day change): ${sectorLine}
-Top 5 gainers: ${topGainers}
-Top 5 losers: ${topLosers}
-Big movers (±2%+): ${bigMovers||"None above ±2% today"}`;
-
-    const response=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        tools:[{type:"web_search_20250305",name:"web_search"}],
-        messages:[{role:"user",content:prompt}]
-      })
-    });
+    const key=apiKey||localStorage.getItem("reit_anthropic_key")||"";
+    if(!key){sAiSummary("\u26a0 No API key. Click \ud83d\udd11 to add your key.");sAiSummaryLoading(false);return;}
+    const isLocal=window.location.protocol==="file:";
+    let response;
+    try{response=await fetch(isLocal?"http://localhost:8765/api/claude":"https://api.anthropic.com/v1/messages",{method:"POST",headers:isLocal?{"Content-Type":"application/json","x-api-key":key}:{"Content-Type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:prompt}]})});}
+    catch(e){if(isLocal){sAiSummary("\u26a0 Proxy not running. Run: python serve.py");sAiSummaryLoading(false);return;}throw e;}
     const data=await response.json();
+    if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
     const text=data.content?.filter(c=>c.type==="text").map(c=>c.text).join("\n")||"Failed to generate summary.";
     sAiSummary(text);
     sAiSummaryTs(new Date());
@@ -971,17 +980,26 @@ return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif"
 {briefs.map((b,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${TC[b.type]}`,animation:`fadeIn 0.3s ease ${i*0.05}s both`}}>
 <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,textTransform:"uppercase",letterSpacing:.6,color:TC[b.type],marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{TI[b.type]} {b.tag}</span>{b.url?<a href={b.url} target="_blank" rel="noopener" style={{color:S.mu,fontSize:7,textDecoration:"none",display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>{b.source} · {b.date} <span style={{color:S.ac,fontSize:9}}>↗</span></a>:<span style={{color:S.mu,fontSize:7,textTransform:"none"}}>{b.source} · {b.date}</span>}</div>
 <div style={{fontSize:11.5,color:S.tx,lineHeight:1.55}}>{b.text}</div></div>)}
-</div></div></div>
+</div></div>
 
-{/* AI DAILY SUMMARY */}
-<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",marginTop:14}}>
+{/* ── MARKET BRIEFING · Mon Mar 9 ── */}
+<div style={{borderTop:"1px solid "+S.bd,marginTop:14,paddingTop:14}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"#34d399"}}>◆ Daily Market Summary · {aiSummaryTs?aiSummaryTs.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}):"Auto-generates at 5:00 PM ET"} · Claude AI</span>
-<button onClick={generateAISummary} disabled={aiSummaryLoading} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${aiSummaryLoading?"#5a6878":"#34d399"}`,background:aiSummaryLoading?"transparent":"rgba(52,211,153,.1)",color:aiSummaryLoading?"#5a6878":"#34d399",cursor:aiSummaryLoading?"wait":"pointer",textTransform:"uppercase"}}>{aiSummaryLoading?"◆ Generating…":"◆ Generate Now"}</button>
+<div style={{display:"flex",alignItems:"center",gap:7}}>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"#34d399"}}>◆ Market Briefing</span>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>{aiSummaryTs?"· "+aiSummaryTs.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"})+" · Claude AI":"· Mon Mar 9 · Claude AI"}</span>
 </div>
-{aiSummaryLoading&&<div style={{padding:"20px 0",textAlign:"center"}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,animation:"pulse 1.5s ease-in-out infinite"}}>Searching the web and analyzing today's REIT market…</div></div>}
-{!aiSummaryLoading&&!aiSummary&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu,padding:"12px 0",lineHeight:1.6}}>The daily summary auto-generates at 5:00 PM ET after market close. Hit "Generate Now" to run it manually.</div>}
-{aiSummary&&<div style={{fontSize:12,color:S.tx,lineHeight:1.7,whiteSpace:"pre-wrap",fontFamily:"system-ui,sans-serif"}}>{aiSummary.split(/\*\*([^*]+)\*\*/).map((part,i)=>i%2===1?<span key={i} style={{fontWeight:700,color:S.br,fontFamily:"'JetBrains Mono',monospace",fontSize:11}}>{part}</span>:<span key={i}>{part}</span>)}</div>}
+<div style={{display:"flex",alignItems:"center",gap:5}}>
+{showKeyInput&&<input autoFocus value={apiKey} onChange={e=>{sApiKey(e.target.value);localStorage.setItem("reit_anthropic_key",e.target.value);}} onBlur={()=>sShowKeyInput(false)} placeholder="sk-ant-api03-..." style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 8px",borderRadius:4,border:"1px solid #34d399",background:"rgba(52,211,153,.05)",color:"#34d399",outline:"none",width:200}}/>}
+<button onClick={()=>sShowKeyInput(v=>!v)} title={apiKey?"Key set — click to change":"Add API key"} style={{padding:"3px 7px",borderRadius:4,border:"1px solid "+(apiKey?"rgba(52,211,153,.35)":"rgba(245,158,11,.45)"),background:apiKey?"rgba(52,211,153,.06)":"rgba(245,158,11,.06)",color:apiKey?"#34d399":"#f59e0b",cursor:"pointer",fontSize:10}}>&#128273;</button>
+<button onClick={generateAISummary} disabled={aiSummaryLoading} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 12px",borderRadius:4,border:"1px solid "+(aiSummaryLoading?"#3d4654":"#34d399"),background:aiSummaryLoading?"transparent":"rgba(52,211,153,.08)",color:aiSummaryLoading?"#5a6878":"#34d399",cursor:aiSummaryLoading?"wait":"pointer",textTransform:"uppercase",letterSpacing:.4}}>{aiSummaryLoading?"◆ Generating…":"◆ Regenerate"}</button>
+</div>
+</div>
+{aiSummaryLoading&&<div style={{display:"flex",alignItems:"center",gap:8,padding:"10px 0"}}><div style={{width:5,height:5,borderRadius:"50%",background:"#34d399",animation:"pulse 1.4s ease-in-out infinite",flexShrink:0}}/><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu}}>Searching web · analyzing market · drafting briefing…</span></div>}
+<div style={{fontSize:12.5,color:S.tx,lineHeight:1.8,display:aiSummaryLoading?"none":"block"}}>
+{aiSummary||"Equities staged a dramatic intraday reversal — the Dow swung from −900 pts to close +239 (+0.50% → 47,741) after President Trump told CBS the Iran war was \"very complete, pretty much,\" sending oil prices plunging from a $101 intraday high to settle at $94.77 before sliding further to ~$86 after-hours. The S&P closed +0.83% at 6,796 and the Nasdaq led at +1.38% to 22,696, while the VIX fell 14% to 25.5. The 10Y held near 4.13% as markets weigh one remaining Fed cut in 2026 (Sep), with CPI Wednesday and PCE Friday the next key reads. No REIT-specific catalysts today; rate-cut repricing and oil-driven inflation uncertainty remain the primary headwinds for cap rate compression across the sector."}
+</div>
+</div>
 </div>
 
 </div></div>}
