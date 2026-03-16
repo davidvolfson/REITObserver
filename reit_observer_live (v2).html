@@ -108,7 +108,8 @@ const TRUSTED=new Set([
   "Trepp",
   "Commercial Mortgage Alert",
   "Real Estate Alert",
-  "Investor's Business Daily"
+  "Investor's Business Daily",
+  "SEC EDGAR","EDGAR"
 ]);
 
 function isTrusted(name){
@@ -117,6 +118,119 @@ function isTrusted(name){
   const lo=name.toLowerCase();
   for(const t of TRUSTED){if(lo.includes(t.toLowerCase()))return true;}
   return false;
+}
+
+// ── SEC EDGAR 8-K Feed ──
+// CIK numbers hardcoded for REIT universe — stable identifiers, never change
+// www.sec.gov/files/company_tickers.json blocks CORS from file:// origins
+const _cikMap={
+  "AVB":"0000915912","EQR":"0000906107","ESS":"0000920522","MAA":"0000912595",
+  "UDR":"0000074208","CPT":"0000906345","IRT":"0001466085","VRE":"0000924901",
+  "NXRT":"0001620393","INVH":"0001687229","AMH":"0001562401",
+  "BXP":"0001037540","ARE":"0001035443","VNO":"0000899689","SLG":"0001040971",
+  "KRC":"0001025996","CUZ":"0000025232","DEI":"0001364250","HIW":"0000921082",
+  "CDP":"0000860546","HPP":"0001482512","ESRT":"0001541401","JBGS":"0001689796",
+  "BDN":"0000790816","PDM":"0001042776",
+  "PLD":"0001045609","LINE":"0001868159","REXR":"0001571283","EGP":"0000049600",
+  "COLD":"0001455863","STAG":"0001479094","FR":"0000921825","TRNO":"0001476150",
+  "LXP":"0000910108",
+  "KIM":"0000879101","REG":"0000910606","BRX":"0001581068","KRG":"0001286043",
+  "PECO":"0001476204","UE":"0001611547","FRT":"0000034903","AKR":"0000899629",
+  "SPG":"0001063761","MAC":"0000912242","SKT":"0000899715",
+  "O":"0000726728","WPC":"0001025378","NNN":"0000751364","ADC":"0000917251",
+  "EPRT":"0001728951","SAFE":"0001095651","BNL":"0001424182",
+  "WELL":"0000766704","VTR":"0000740260","DOC":"0000765880","OHI":"0000888491",
+  "MPT":"0001287865","HR":"0001360604","SBRA":"0001492298",
+  "PSA":"0001393311","EXR":"0001289490","CUBE":"0001298675","NSA":"0001618563",
+  "SUI":"0000912593","ELS":"0000895417",
+  "EQIX":"0001101239","DLR":"0001297996"
+};
+let _cikLoaded=true; // hardcoded — always ready
+const EDGAR_UA="REIT-Observer Starwood-Capital reit-observer@starwoodcapital.com";
+
+const EDGAR_ITEMS={
+  "1.01":"Material Agreement","1.02":"Termination of Agreement",
+  "2.01":"Acquisition/Disposition","2.02":"Earnings Results",
+  "2.06":"Material Impairment","4.01":"Auditor Change",
+  "5.02":"Leadership Change","7.01":"Reg FD Disclosure",
+  "8.01":"Other Events"
+};
+
+// ── Manually pinned news — M&A announcements, catalyst events APIs may miss ──
+// Add entries here whenever Polygon/Finnhub lag on same-day institutional news.
+// Format mirrors Polygon/Finnhub articles. trusted:true ensures they surface in briefs.
+const PINNED_NEWS={
+  "NSA":[{
+    title:"PSA to Acquire National Storage Affiliates in $10.5B All-Stock Deal",
+    source:"BusinessWire",
+    date:"2026-03-16",
+    url:"https://www.businesswire.com/news/home/20260316066217/en/Public-Storage-to-Acquire-National-Storage-Affiliates-Creating-Significant-Value-for-All-Stakeholders",
+    desc:"Public Storage (PSA) agreed to acquire National Storage Affiliates Trust (NSA) in an all-stock transaction valued at ~$10.5B EV ($5.63B equity). Exchange ratio: 0.14 PSA shares per NSA share — implied $41.68/sh, a ~25% premium to recent trading. Both boards unanimously approved March 16, 2026; expected close Q3 2026. PSA secured $4B in committed financing from Goldman Sachs and Wells Fargo. NSA's existing OP limited partners will retain ~80% of a 313-property JV (~$3.3B, capitalized with $2.2B property-level debt). Expected run-rate synergies: $110–130M annually within 3–4 years (NSA's 69% same-store margin vs. PSA's 78%). FFO-per-share accretive in Year 1. Combined platform: ~$57B equity market cap, ~$77B EV.",
+    from:"pinned",
+    trusted:true
+  }],
+  "PSA":[{
+    title:"Public Storage Agrees to Acquire National Storage Affiliates for $10.5B",
+    source:"BusinessWire",
+    date:"2026-03-16",
+    url:"https://www.businesswire.com/news/home/20260316066217/en/Public-Storage-to-Acquire-National-Storage-Affiliates-Creating-Significant-Value-for-All-Stakeholders",
+    desc:"Public Storage (PSA) announces all-stock acquisition of National Storage Affiliates (NSA) at 0.14 PSA shares per NSA share (~$41.68/sh implied, ~25% premium). $10.5B EV. PSA CEO Tom Boyle: acquisition accelerates PS4.0 strategic vision for per-share earnings growth. $110–130M run-rate synergies within 3–4 years. PSA shares trade -1.6% to -3% on deal dilution concerns. Combined entity becomes the dominant self-storage REIT at ~$77B EV.",
+    from:"pinned",
+    trusted:true
+  }]
+};
+
+function loadCIKMap(){return Promise.resolve();} // no-op — map is hardcoded
+
+async function fetch8Ks(tickers){
+  const delay=ms=>new Promise(r=>setTimeout(r,ms));
+  // data.sec.gov has Access-Control-Allow-Origin: * — no CORS issues
+  const cutoff=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  for(const tk of tickers){
+    if(_newsCache["__8k_"+tk]!==undefined)continue;
+    const cik=_cikMap[tk];
+    if(!cik){_newsCache["__8k_"+tk]=[];continue;}
+    try{
+      const res=await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`,{
+        headers:{"User-Agent":EDGAR_UA},signal:AbortSignal.timeout(6000)
+      });
+      if(!res.ok){_newsCache["__8k_"+tk]=[];continue;}
+      const data=await res.json();
+      const f=data.filings?.recent;
+      if(!f){_newsCache["__8k_"+tk]=[];continue;}
+      const articles=[];
+      for(let i=0;i<f.form.length;i++){
+        if(f.form[i]!=="8-K")continue;
+        if(f.filed[i]<cutoff)break;
+        const rawItems=(f.items[i]||"").split(",").map(s=>s.trim()).filter(Boolean);
+        const labels=rawItems.length>0
+          ?rawItems.map(it=>EDGAR_ITEMS[it]||("Item "+it)).join(" · ")
+          :"Filing";
+        const acc=(f.accessionNumber[i]||"").replace(/-/g,"");
+        const cikInt=parseInt(cik);
+        const doc=f.primaryDocument?.[i]||"";
+        const url=acc&&doc
+          ?`https://www.sec.gov/Archives/edgar/data/${cikInt}/${acc}/${doc}`
+          :`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${cikInt}&type=8-K&dateb=&owner=include&count=5`;
+        articles.push({
+          title:`${tk} 8-K: ${labels}`,
+          source:"SEC EDGAR",
+          date:f.filed[i],
+          url,
+          desc:`Form 8-K filed ${f.filed[i]} — ${rawItems.map(it=>EDGAR_ITEMS[it]||it).join(", ") || labels}.`,
+          from:"edgar",
+          trusted:true,
+          items:rawItems
+        });
+      }
+      _newsCache["__8k_"+tk]=articles;
+      console.log(`EDGAR: ${tk} → ${articles.length} 8-Ks`);
+    }catch(e){
+      console.warn("EDGAR 8-K error",tk,":",e.message);
+      _newsCache["__8k_"+tk]=[];
+    }
+    await delay(150);
+  }
 }
 
 // ── Finnhub API (free tier, broader news coverage) ──
@@ -320,6 +434,15 @@ function generateBriefs(){
   const briefs=[];
   const today=new Date().toISOString().slice(0,10);
 
+  // Pre-seed cache with manually pinned articles (M&A, catalyst events APIs may miss)
+  // Deduped by URL so repeated generateBriefs() calls don't stack duplicates
+  Object.entries(PINNED_NEWS).forEach(([tk,arts])=>{
+    const existing=_newsCache[tk]||[];
+    const existingUrls=new Set(existing.map(a=>a.url));
+    const toAdd=arts.filter(a=>!existingUrls.has(a.url));
+    if(toAdd.length)_newsCache[tk]=[...toAdd,...existing];
+  });
+
   // Sort all tickers by absolute day move — biggest moves first
   const movers=R.filter(r=>r[14]!=null&&Math.abs(r[14])>=0.5).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14]));
   const covered=new Set();
@@ -370,6 +493,38 @@ function generateBriefs(){
       source:"Polygon.io",
       date:today,
       ticker:r[1]
+    });
+  });
+
+  // SEC EDGAR 8-K filings — earnings/acquisitions/material events (last 7 days)
+  const edgarCutoff=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+  const edgarCovered=new Set(briefs.map(b=>b.ticker).filter(Boolean));
+  const PRIORITY_ITEMS=new Set(["2.02","2.01","1.01","7.01","8.01"]);
+  const edgar8Ks=[];
+  R.forEach(r=>{
+    (_newsCache["__8k_"+r[1]]||[]).forEach(a=>{
+      if(a.date>=edgarCutoff&&!edgarCovered.has(r[1])){
+        const hasPriority=a.items&&a.items.some(it=>PRIORITY_ITEMS.has(it));
+        edgar8Ks.push({...a,ticker:r[1],sector:r[13],hasPriority});
+      }
+    });
+  });
+  // Sort: priority items first (earnings/acquisitions), then by date
+  edgar8Ks.sort((a,b)=>(b.hasPriority?1:0)-(a.hasPriority?1:0)||b.date.localeCompare(a.date));
+  const seenEdgarTickers=new Set();
+  edgar8Ks.slice(0,6).forEach(a=>{
+    if(seenEdgarTickers.has(a.ticker))return;
+    seenEdgarTickers.add(a.ticker);
+    const isEarnings=a.items&&a.items.includes("2.02");
+    const isAcq=a.items&&(a.items.includes("2.01")||a.items.includes("1.01"));
+    briefs.push({
+      type:isEarnings?"opportunity":isAcq?"alert":"info",
+      tag:"SEC 8-K · "+a.ticker+(a.sector?" · "+a.sector:""),
+      text:a.desc||a.title,
+      source:"SEC EDGAR",
+      date:a.date,
+      url:a.url,
+      ticker:a.ticker
     });
   });
 
@@ -529,7 +684,7 @@ const EARNINGS={
 "PSA":{q:"Q4 2025",ffo:"$4.28/sh",summary:"Core FFO flat. Same-store NOI flat as sector normalizes. Occupancy 92.2%. Street rates stabilizing. 2,700+ facilities — largest platform. Fortress balance sheet. 2026 guidance $16.80-$17.20."},
 "EXR":{q:"Q4 2025",ffo:"$2.08/sh",summary:"Core FFO -2.5% YoY. Life Storage merger synergies delivering. Occupancy 94.1%. Rate normalization. 3rd-party management 3,800+ facilities. 2026 guidance $8.10-$8.30."},
 "CUBE":{q:"Q4 2025",ffo:"$0.66/sh",summary:"FFO -1.5% YoY. Same-store NOI -1.5%. Urban/suburban high-barrier focus. Occupancy 89.9% below peers. NYC metro commanding premium. 2026 guidance $2.58-$2.66."},
-"NSA":{q:"Q4 2025",ffo:"$0.62/sh",summary:"Core FFO -5.7% YoY. PRO structure adding complexity. Occupancy 85.0% — weakest in storage. Rate normalization pressuring. 2026 guidance $2.38-$2.50."},
+"NSA":{q:"Q4 2025 · ⚡ ACQUISITION",ffo:"$41.68 deal",summary:"⚡ ACQUISITION — PSA to acquire NSA in all-stock deal at $41.68/sh implied (~25% premium), $10.5B EV. Both boards unanimously approved March 16, 2026; close expected Q3 2026. PSA exchange ratio: 0.14 PSA shares per NSA share. Existing NSA OP limited partners retain ~80% of a 313-property JV (~$3.3B). Run-rate synergies $110–130M/yr within 3–4 years; FFO-accretive Year 1. Pre-deal context: Core FFO -5.7% YoY ($2.23/sh), occupancy 85.0% (weakest in storage), net debt/EBITDA 6.6x elevated, 2025 same-store NOI -4.5%. Deal eliminates near-term refinancing risk (~$375M 2026 maturities) and delivers control premium well above analyst price targets ($30–$39 pre-deal)."},
 "SUI":{q:"Q4 2025",ffo:"$1.82/sh",summary:"Core FFO +5.4% YoY. MH 99%+ occupied. RV recovering from post-COVID normalization. Marina contributing growth. 2026 guidance $7.15-$7.35."},
 "ELS":{q:"Q4 2025",ffo:"$0.72/sh",summary:"Normalized FFO +5.3% YoY. MH occupancy 94.3% with embedded rent growth. Thousand Trails RV membership model unique. 2026 guidance $2.82-$2.92."},
 "EQIX":{q:"Q4 2025",ffo:"$9.22/sh",summary:"AFFO +12.1% YoY. DC contracts +25% on AI/ML demand. Power density accelerating — 50kW+ per rack standard. Hyperscaler renewals at 8-12% bumps. $5B+ pipeline. 2026 guidance $36.50-$37.50."},
@@ -759,6 +914,12 @@ async function loadFundamentals(onProgress){
   onProgress("Fetching news for top movers…");
   const movers=R.filter(r=>r[14]!=null).sort((a,b)=>Math.abs(b[14])-Math.abs(a[14])).slice(0,25).map(r=>r[1]);
   await fetchTickerNews(movers);
+  // Load EDGAR 8-K filings for all tickers in universe (data.sec.gov — CORS open)
+  onProgress("Loading SEC EDGAR 8-K filings…");
+  const allTickers=R.map(r=>r[1]);
+  // Fetch in two passes: movers first (highest value), then rest
+  await fetch8Ks(movers);
+  await fetch8Ks(allTickers.filter(t=>!movers.includes(t)));
   // Fetch GS sector-level news for briefs
   if(_gsAvailable){
     onProgress("Fetching Green Street sector research…");
@@ -846,16 +1007,38 @@ const openModal=async(r)=>{
   sMdNewsLoading(true);
   sMdNews([]);
   const tk=r[1];
-  // Fetch news if not cached
+  // Prepend any pinned articles (merger announcements, etc. not in API feeds)
+  if(PINNED_NEWS[tk]){
+    const existing=_newsCache[tk]||[];
+    const existingUrls=new Set(existing.map(a=>a.url));
+    const toAdd=PINNED_NEWS[tk].filter(a=>!existingUrls.has(a.url));
+    if(toAdd.length)_newsCache[tk]=[...toAdd,...existing];
+  }
+  // Fetch Polygon/Finnhub news if not cached
   if(!_newsCache[tk]){
     await fetchTickerNews([tk]);
   }
-  const articles=(_newsCache[tk]||[]).slice().sort((a,b)=>{
+  // Fetch EDGAR 8-Ks on-demand if not yet loaded
+  if(_newsCache["__8k_"+tk]===undefined){
+    await fetch8Ks([tk]);
+  }
+  // Combine: 8-Ks first (authoritative), then Polygon/Finnhub; dedupe by URL
+  const seen8k=new Set();
+  const combined=[
+    ...(_newsCache["__8k_"+tk]||[]),
+    ...(_newsCache[tk]||[])
+  ].filter(a=>{
+    const key=a.url||a.title;
+    if(seen8k.has(key))return false;
+    seen8k.add(key);
+    return true;
+  });
+  combined.sort((a,b)=>{
     if(a.trusted&&!b.trusted)return -1;
     if(!a.trusted&&b.trusted)return 1;
-    return 0;
+    return(b.date||"").localeCompare(a.date||"");
   });
-  sMdNews(articles);
+  sMdNews(combined);
   sMdNewsLoading(false);
 };
 
@@ -924,7 +1107,26 @@ const now=new Date(),tstr=now.toLocaleTimeString("en-US",{hour:"2-digit",minute:
 const MF="'JetBrains Mono',monospace";
 
 return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif",fontSize:13,height:"100vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-<style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:${S.bg}}::-webkit-scrollbar-thumb{background:${S.bd};border-radius:3px}`}</style>
+<style>{`
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:${S.bg}}
+::-webkit-scrollbar-thumb{background:${S.bd};border-radius:3px}
+@media(max-width:768px){
+  body{-webkit-text-size-adjust:100%}
+  .dash-outer{padding:10px 12px!important}
+  .dash-grid{grid-template-columns:1fr!important}
+  .dash-sidebar{order:2}
+  .dash-brief{order:1;min-height:unset!important}
+  .brief-grid{grid-template-columns:1fr!important}
+  .nav-status{display:none!important}
+  .modal-outer{padding-top:0!important;align-items:flex-end!important}
+  .modal-box{width:100vw!important;max-width:100vw!important;border-radius:14px 14px 0 0!important;max-height:92vh!important}
+  .screener-filters{flex-wrap:wrap!important;padding:8px 12px!important}
+  .screener-filters input{width:100%!important;margin-left:0!important;margin-top:6px!important}
+}
+`}</style>
 
 {/* NAV */}
 <div style={{background:S.sf,borderBottom:`1px solid ${S.bd}`,padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",height:46,flexShrink:0}}>
@@ -932,7 +1134,7 @@ return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif"
 <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:5,height:20,background:S.ac,borderRadius:2}}/><span style={{fontSize:14,fontWeight:700,color:S.br}}>REIT Observer</span></div>
 {["dashboard","screener"].map(k=><button key={k} onClick={()=>sPg(k)} style={{padding:"12px 16px",fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:pg===k?S.ac:S.mu,background:"none",border:"none",borderBottom:`2px solid ${pg===k?S.ac:"transparent"}`,cursor:"pointer",textTransform:"uppercase",letterSpacing:.5}}>{k.charAt(0).toUpperCase()+k.slice(1)}</button>)}
 </div>
-<div style={{display:"flex",alignItems:"center",gap:12}}>
+<div className="nav-status" style={{display:"flex",alignItems:"center",gap:12}}>
 <div style={{width:7,height:7,borderRadius:"50%",background:apiOk===null?"#fbbf24":apiOk?"#34d399":"#f87171",animation:apiOk!==false?"pulse 2s ease-in-out infinite":"none"}}/>
 <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu}}>{apiOk===null?"Connecting to Polygon.io…":apiOk?`Live · ${tickersUp}/${R.length} · Polygon${_gsAvailable?" + Green Street":""}${loadMsg?" · "+loadMsg:_fundLoaded?" · All data live":""}`:"API Error"+(feedErr?" · "+feedErr:"")}</span>
 <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,background:S.sf2,padding:"3px 8px",borderRadius:3}}>{ss}s</span>
@@ -944,11 +1146,11 @@ return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif"
 {loadMsg&&apiOk&&<div style={{background:"rgba(129,140,248,.08)",borderBottom:"1px solid rgba(129,140,248,.3)",padding:"5px 24px",fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:"#818cf8"}}>{loadMsg}</div>}
 
 {/* DASHBOARD */}
-{pg==="dashboard"&&<div style={{flex:1,overflow:"auto",padding:"16px 24px"}}>
+{pg==="dashboard"&&<div className="dash-outer" style={{flex:1,overflow:"auto",padding:"16px 24px"}}>
 <div style={{display:"flex",gap:8,marginBottom:16,overflowX:"auto"}}>{SO.map(s=>{const v=SR[s];return<div key={s} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 11px",background:S.sf,border:`1px solid ${S.bd}`,borderRadius:5,whiteSpace:"nowrap"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,textTransform:"uppercase"}}>{s}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,fontWeight:700,color:v!=null?cc(v):S.mu}}>{v!=null?(v>=0?"+":"")+v.toFixed(2)+"%":"–"}</span></div>;})}</div>
 
-<div style={{display:"grid",gridTemplateColumns:"270px 1fr",gap:14,marginBottom:14}}>
-<div style={{display:"flex",flexDirection:"column",gap:12}}>
+<div className="dash-grid" style={{display:"grid",gridTemplateColumns:"270px 1fr",gap:14,marginBottom:14}}>
+<div className="dash-sidebar" style={{display:"flex",flexDirection:"column",gap:12}}>
 {[{l:"▲ Gainers",li:tG,c:"#34d399"},{l:"▼ Losers",li:tL,c:"#f87171"}].map(o=><div key={o.l} style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,textTransform:"uppercase",letterSpacing:.8,color:o.c,marginBottom:8}}>{o.l}</div>{o.li.map(r=><div key={r[1]} onClick={()=>openModal(r)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${S.bd}`,cursor:"pointer"}}><div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:600,color:S.br,fontSize:12}}>{r[1]}</span><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,color:S.mu,marginLeft:6}}>${r[2].toFixed(2)}</span></div><span style={{fontFamily:"'JetBrains Mono',monospace",fontWeight:700,fontSize:12,color:o.c}}>{r[14]>=0?"+":""}{r[14].toFixed(2)}%</span></div>)}</div>)}
 <div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"12px 14px"}}>{[
 ["Live Tickers",tickersUp+"/"+R.length,apiOk?"#34d399":"#f87171"],
@@ -969,34 +1171,35 @@ return(<div style={{background:S.bg,color:S.tx,fontFamily:"system-ui,sans-serif"
 ["◆ NEWS SOURCES","","#818cf8"],
 ["Polygon.io","Market news","#818cf8"],
 ["Finnhub","Broad coverage","#818cf8"],
-["Green Street",_gsAvailable?(_gsMode==="direct"?"Direct ✓":"Proxy ✓"):"Offline — use .bat launcher",_gsAvailable?"#34d399":"#5a6878"]
+["Green Street",_gsAvailable?(_gsMode==="direct"?"Direct ✓":"Proxy ✓"):"Offline — use .bat launcher",_gsAvailable?"#34d399":"#5a6878"],
+["SEC EDGAR",_cikLoaded?"8-Ks live ✓":"Loading CIK map…",_cikLoaded?"#34d399":"#fbbf24"]
 ].map((a,i)=>{if(a[0]===""&&a[1]==="")return<div key={i} style={{borderBottom:`1px solid ${S.bd}`,margin:"2px 0"}}/>;return<div key={i} style={{display:"flex",justifyContent:"space-between",padding:a[2]==="#34d399"||a[2]==="#f59e0b"&&a[1]===""?"6px 0":"3px 0"}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:a[1]===""?8:9,color:a[1]===""?a[2]:S.mu,textTransform:"uppercase",fontWeight:a[1]===""?600:400,letterSpacing:a[1]===""?.6:.3}}>{a[0]}</span>{a[1]&&<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,fontWeight:500,color:a[2]}}>{a[1]}</span>}</div>;})}</div>
 </div>
 
-<div style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",display:"flex",flexDirection:"column"}}>
+<div className="dash-brief" style={{background:S.sf,border:`1px solid ${S.bd}`,borderRadius:7,padding:"14px 16px",display:"flex",flexDirection:"column"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:S.ac}}>Daily Brief · {briefsTs?briefsTs.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"}):"–"} · {briefs.length} stories</span><button onClick={doGenerate} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${S.ac}`,background:S.acD,color:S.ac,cursor:"pointer",textTransform:"uppercase"}}>◆ Regenerate</button></div>
-<div style={{flex:1,overflow:"auto"}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
+<div style={{flex:1,overflow:"auto"}}><div className="brief-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9}}>
 {briefs.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:20,fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:S.mu}}>Loading briefs… generating after data loads.</div>}
 {briefs.map((b,i)=><div key={i} style={{background:S.sf2,border:`1px solid ${S.bd}`,borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${TC[b.type]}`,animation:`fadeIn 0.3s ease ${i*0.05}s both`}}>
 <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,textTransform:"uppercase",letterSpacing:.6,color:TC[b.type],marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>{TI[b.type]} {b.tag}</span>{b.url?<a href={b.url} target="_blank" rel="noopener" style={{color:S.mu,fontSize:7,textDecoration:"none",display:"flex",alignItems:"center",gap:4}} onClick={e=>e.stopPropagation()}>{b.source} · {b.date} <span style={{color:S.ac,fontSize:9}}>↗</span></a>:<span style={{color:S.mu,fontSize:7,textTransform:"none"}}>{b.source} · {b.date}</span>}</div>
 <div style={{fontSize:11.5,color:S.tx,lineHeight:1.55}}>{b.text}</div></div>)}
 </div></div>
 
-{/* ── MARKET BRIEFING · Friday Mar 13 ── */}
+{/* ── MARKET BRIEFING · Mon Mar 16, 2026 ── */}
 <div style={{borderTop:"1px solid "+S.bd,marginTop:14,paddingTop:14}}>
 <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
 <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"#34d399"}}>◆ Market Briefing</span>
-<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>· Friday Mar 13 · Claude AI</span>
+<span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>· Mon Mar 16, 2026 · Claude AI</span>
 </div>
 <div style={{fontSize:12.5,color:S.tx,lineHeight:1.8}}>
-Public real estate stocks are navigating a turbulent Friday as multiple crosscurrents collide. The broader market is bouncing modestly — the Dow and S&P 500 each up about 0.6% — after oil prices pulled back from Thursday's surge that saw Brent crude close above $100 for the first time since 2022, but the relief may be short-lived. Today's Q4 GDP revision came in at just 0.7% annualized, a sharp miss from the 1.5% consensus, while the Fed's preferred inflation gauge (the PCE price index, also released today) is expected to show core inflation still running at 2.7% year-over-year — feeding a growing stagflation narrative that's poison for rate-sensitive sectors. The 30-year fixed mortgage sits at 6.11% with virtually no chance of a rate cut at next week's Fed meeting, keeping a ceiling on REIT valuations and transaction volumes. The sector remains deeply split: data centers and industrial names like Iron Mountain (up 23% in March alone) are thriving, Singapore's UI Boustead REIT just launched as the largest IPO of 2026, and CBRE's own outlook projects a 16% jump in CRE investment activity this year to $562 billion — but office and brokerage stocks are still nursing wounds from February's AI scare trade, which saw CBRE, JLL, and Cushman & Wakefield plunge 11–14% on fears that artificial intelligence will gut white-collar headcount and office demand. CBRE remains roughly 24% off its 52-week high despite posting an earnings beat, BXP's physical occupancy lingers at just 50–55% of pre-pandemic levels, and Adobe's 8% drop today on its CEO's departure only reinforces the narrative of tech tenants retrenching. The Savills–Eastdil Secured mega-merger signals institutional brokerage consolidation in response to both AI pressure and the need for scale, while the Iran conflict adds a wildcard — elevated energy costs threaten to reignite inflation, pressure tenant operating expenses, and delay the rate relief that REITs desperately need to re-rate higher.
+Equities snapped a three-week losing streak as oil pulled back sharply on reports the U.S. is allowing Iranian tankers through the Strait of Hormuz — WTI fell $3.83 to $94.88 after briefly crossing $100 last weekend. The S&P closed +0.97% at ~6,697, Nasdaq +1.27% to ~22,387, Dow +0.84% to ~46,938. The 10Y ticked up 1bp to 4.285%; VIX 27.19, still elevated above 20. The FOMC begins its two-day meeting Tuesday with the rate decision and updated dot plot due Wednesday March 18 — a hold is near certainty (&gt;99%), but any revision to the 2026 SEP or stagflation language from Powell will be closely watched. Dominant REIT catalyst: <strong>Public Storage (PSA) announced a $10.5B all-stock acquisition of National Storage Affiliates (NSA)</strong> at an implied $41.68/share (~25% premium to recent trading), driving NSA +26%+ in early trading. PSA CEO Tom Boyle cited the PS4.0 strategic vision; $110–130M annual synergies expected within 3–4 years, FFO-per-share accretive in Year 1. Storage consolidation thesis playing out — combined platform ~$77B EV.
 </div>
 </div>
 </div>
 
 </div></div>}
 {pg==="screener"&&<div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-<div style={{padding:"10px 24px",display:"flex",gap:6,alignItems:"center"}}>{[["all","All"],["dd","Deep Disc"],["mv","Day Movers"],["hy","Hi Yield"]].map(a=><button key={a[0]} onClick={()=>sFt(a[0])} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${ft===a[0]?S.ac:S.bd}`,background:ft===a[0]?S.acD:"transparent",color:ft===a[0]?S.ac:S.mu,cursor:"pointer",textTransform:"uppercase"}}>{a[1]}</button>)}
+<div className="screener-filters" style={{padding:"10px 24px",display:"flex",gap:6,alignItems:"center"}}>{[["all","All"],["dd","Deep Disc"],["mv","Day Movers"],["hy","Hi Yield"]].map(a=><button key={a[0]} onClick={()=>sFt(a[0])} style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9,padding:"4px 10px",borderRadius:4,border:`1px solid ${ft===a[0]?S.ac:S.bd}`,background:ft===a[0]?S.acD:"transparent",color:ft===a[0]?S.ac:S.mu,cursor:"pointer",textTransform:"uppercase"}}>{a[1]}</button>)}
 <input value={sr} onChange={e=>sSr(e.target.value)} placeholder="Search ticker or name..." style={{marginLeft:"auto",fontFamily:"'JetBrains Mono',monospace",fontSize:10,padding:"5px 12px",borderRadius:4,border:`1px solid ${S.bd}`,background:S.sf,color:S.tx,outline:"none",width:170}}/>
 <div style={{display:"flex",alignItems:"center",gap:10,marginLeft:12}}><span style={{display:"flex",alignItems:"center",gap:3}}><span style={{width:5,height:5,borderRadius:"50%",background:"#34d399",display:"inline-block"}}/><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>LIVE</span></span><span style={{display:"flex",alignItems:"center",gap:3}}><span style={{width:5,height:5,borderRadius:"50%",background:"#f59e0b",display:"inline-block"}}/><span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu}}>MANUAL</span></span></div>
 </div>
@@ -1021,8 +1224,8 @@ return<tr key={r[1]} onClick={()=>openModal(r)} style={{borderBottom:`1px solid 
 <td style={{padding:6,textAlign:"right",fontFamily:"'JetBrains Mono',monospace",color:cc(r[12])}}>{fc(r[12])}</td></tr>;})}</tbody></table></div></div>}
 
 {/* MODAL */}
-{md&&<div onClick={e=>{if(e.target===e.currentTarget)sMd(null);}} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.7)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:50}}>
-<div style={{background:S.bg,border:`1px solid ${S.bd}`,borderRadius:10,width:660,maxWidth:"95vw",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.6)"}}>
+{md&&<div className="modal-outer" onClick={e=>{if(e.target===e.currentTarget)sMd(null);}} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.7)",backdropFilter:"blur(3px)",display:"flex",justifyContent:"center",alignItems:"flex-start",paddingTop:50}}>
+<div className="modal-box" style={{background:S.bg,border:`1px solid ${S.bd}`,borderRadius:10,width:660,maxWidth:"95vw",maxHeight:"85vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.6)"}}>
 <div style={{padding:"14px 18px",borderBottom:`1px solid ${S.bd}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:16,fontWeight:600,color:S.br}}>{md[1]} · {md[0]}</span><button onClick={()=>sMd(null)} style={{background:"none",border:"none",color:S.mu,fontSize:20,cursor:"pointer"}}>×</button></div>
 <div style={{display:"flex",gap:12,padding:"10px 18px",borderBottom:`1px solid ${S.bd}`,overflowX:"auto"}}>{[["Price","$"+md[2].toFixed(2)],["Day",fd(md[14])],["Yld",md[3]!=null?md[3].toFixed(1)+"%":"–"],["1M",fc(md[4])],["1Y",fc(md[6])],["Cap","$"+md[7].toFixed(1)+"B"],["NAV",md[9]!=null?fc(md[9]):"–"]].map((m,i)=>{const cl=m[0]==="Day"?cc(md[14]):m[0]==="1M"?cc(md[4]):m[0]==="1Y"?cc(md[6]):m[0]==="NAV"?nc(md[9]):S.br;return<div key={i} style={{textAlign:"center",minWidth:52}}><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:8,color:S.mu,textTransform:"uppercase"}}>{m[0]}</div><div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,fontWeight:600,color:cl,marginTop:2}}>{m[1]}</div></div>;})}</div>
 <div style={{padding:"14px 18px"}}>
